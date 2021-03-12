@@ -1,0 +1,15 @@
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_1.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_10.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_11.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_12.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_13.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_14.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_15.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_2.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_3.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_4.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_5.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_6.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_7.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_8.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/MultiTau_PT15to500/MultiTau_PT15to500_v11_noPU/210129_202440/0000/ntuple_9.root

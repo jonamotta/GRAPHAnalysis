@@ -1,0 +1,16 @@
+*.exe
+*.pyc
+*.o
+*.so
+*.eps
+!*/*.root
+*.root
+SKIM_*/
+!*/*.pdf
+!*/*.png
+*._*
+*MY_*
+*.DS*
+*index.php*
+L1BDT/
+L1GNN/
