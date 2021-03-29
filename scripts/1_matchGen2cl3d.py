@@ -22,8 +22,7 @@ def deltar( df, isTau ):
         df['dphi_cl3d_genjet'] = np.abs(df['cl3d_phi'] - df['genjet_phi'])
         sel = df['dphi_cl3d_genjet'] > np.pi
         df['dphi_cl3d_genjet'] -= sel*(2*np.pi)
-        return ( np.sqrt(df['dphi_cl3d_genjet']*df['dphi_cl3d_genjet']+df['deta_cl3d_genjet']*df['deta_cl3d_genjet']) )
-    
+        return ( np.sqrt(df['dphi_cl3d_genjet']*df['dphi_cl3d_genjet']+df['deta_cl3d_genjet']*df['deta_cl3d_genjet']) )  
 
 def taumatching( df_cl3d, df_gen, deta, dphi ):
     df_cl3d_plus    = df_cl3d.query('cl3d_eta>0')
@@ -138,11 +137,12 @@ if __name__ == "__main__" :
     parser.add_argument('--doTau', dest='doTau', help='match the Tau samples?',  action='store_true', default=False)
     parser.add_argument('--doNu', dest='doNu', help='match the Nu samples?',  action='store_true', default=False)
     parser.add_argument('--doQCD', dest='doQCD', help='match the QCD samples?',  action='store_true', default=False)
+    parser.add_argument('--doTrainValid', dest='doTrainValid', help='build merged training/validation datasets?',  action='store_true', default=False)    
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     # store parsed options
     args = parser.parse_args()
 
-    if not args.doHH and not args.doTau and not args.doNu and not args.doQCD:
+    if not args.doHH and not args.doTau and not args.doNu and not args.doQCD and not args.doTrainValid:
         print('** WARNING: no matching dataset specified. What do you want to do (doHH, doTau, doNu, doQCD)?')
         print('** EXITING')
         exit()
@@ -152,6 +152,12 @@ if __name__ == "__main__" :
         print('** WARNING: check which datasets you have available')
         print('** EXITING')
         exit()
+
+    if args.doTrainValid:
+        args.doTau = True
+        args.doHH = True
+        args.doNu = True
+        args.doQCD = True
 
     ##################### DEFINE HANDLING DICTIONARIES ####################
 
@@ -237,11 +243,22 @@ if __name__ == "__main__" :
             'mixed'        : outdir+'/'
         }
 
-    # dictionaries used for saving skim level info
-    dfHH_dict = {}
-    dfQCD_dict = {}
-    dfTau_dict = {}
-    dfNu_dict = {}
+    if args.doTrainValid:
+        outFileTraining_dict = {
+            'threshold'    : outdir+'/Training_PU200_th_matched.hdf5',
+            'supertrigger' : outdir+'/',
+            'bestchoice'   : outdir+'/',
+            'bestcoarse'   : outdir+'/',
+            'mixed'        : outdir+'/'
+        }
+
+        outFileValidation_dict = {
+            'threshold'    : outdir+'/Validation_PU200_th_matched.hdf5',
+            'supertrigger' : outdir+'/',
+            'bestchoice'   : outdir+'/',
+            'bestcoarse'   : outdir+'/',
+            'mixed'        : outdir+'/'
+        }
 
 
     ##################### READ TTREES AND MATCH EVENTS ####################
@@ -272,11 +289,12 @@ if __name__ == "__main__" :
             df_hh_gentau = root_pandas.read_root(inFileHH_dict[name], key=treename, columns=branches_event_gentau, flatten=branches_gentau)
             
             print('** INFO: matching gentaus for ' + inFileHH_dict[name])
-            dfHH_dict[name] = taumatching(df_hh_cl3d, df_hh_gentau, deta_matching, dphi_matching)
+            dfHH = taumatching(df_hh_cl3d, df_hh_gentau, deta_matching, dphi_matching)
+            dfHH['dataset'] = 0 # tag the dataset it came from
 
             print('** INFO: saving file ' + outFileHH_dict[name])
             store_hh = pd.HDFStore(outFileHH_dict[name], mode='w')
-            store_hh[name] = dfHH_dict[name]
+            store_hh[name] = dfHH
             store_hh.close()
 
         if args.doQCD:
@@ -286,11 +304,13 @@ if __name__ == "__main__" :
             df_qcd_genjet = root_pandas.read_root(inFileQCD_dict[name], key=treename, columns=branches_event_genjet, flatten=branches_genjet)
             
             print('** INFO: matching gentaus for ' + inFileQCD_dict[name])
-            dfQCD_dict[name] = jetmatching(df_qcd_cl3d, df_qcd_genjet, deta_matching, dphi_matching)
+            dfQCD = jetmatching(df_qcd_cl3d, df_qcd_genjet, deta_matching, dphi_matching)
+            dfQCD['gentau_decayMode'] = -2 # tag as QCD background
+            dfQCD['dataset'] = 3 # tag the dataset it came from
 
             print('** INFO: saving file ' + outFileQCD_dict[name])
             store_qcd = pd.HDFStore(outFileQCD_dict[name], mode='w')
-            store_qcd[name] = dfQCD_dict[name]
+            store_qcd[name] = dfQCD
             store_qcd.close()
 
         if args.doTau:
@@ -300,23 +320,62 @@ if __name__ == "__main__" :
             df_tau_gentau = root_pandas.read_root(inFileTau_dict[name], key=treename, columns=branches_event_gentau, flatten=branches_gentau)
             
             print('** INFO: matching gentaus for ' + inFileTau_dict[name])
-            dfTau_dict[name] = taumatching(df_tau_cl3d, df_tau_gentau, deta_matching, dphi_matching)
+            dfTau = taumatching(df_tau_cl3d, df_tau_gentau, deta_matching, dphi_matching)
+            dfTau['dataset'] = 1 # tag the dataset it came from
 
             print('** INFO: saving file ' + outFileTau_dict[name])
             store_tau = pd.HDFStore(outFileTau_dict[name], mode='w')
-            store_tau[name] = dfTau_dict[name]
-            store_tau.close()
+            store_tau[name] = dfTau
+            store_tau.close()     
 
         if args.doNu:
             # fill the dataframes with the needed info from the branches defined above for the NU
             print('\n** INFO: creating dataframes for ' + inFileNu_dict[name]) 
             df_nu_cl3d = root_pandas.read_root(inFileNu_dict[name], key=treename, columns=branches_event_cl3d, flatten=branches_cl3d)
-            dfNu_dict[name] = df_nu_cl3d
+            dfNu = df_nu_cl3d
+            dfNu['gentau_decayMode'] = -1 # tag as PU
+            dfNu['cl3d_isbestmatch'] = False
+            dfNu['dataset'] = 2 # tag the dataset it came from
 
             print('** INFO: saving file ' + outFileNu_dict[name])
             store_nu = pd.HDFStore(outFileNu_dict[name], mode='w')
-            store_nu[name] = dfNu_dict[name]
+            store_nu[name] = dfNu
             store_nu.close()
+
+        if args.doTrainValid:
+            print('\n** INFO: creating dataframes for Training/Validation')
+            dfTauTraining = dfTau.sample(frac=0.7,random_state=10)
+            dfTauValidation = dfTau.drop(dfTauTraining.index)
+
+            dfHHTraining = dfHH.sample(frac=0.7,random_state=10)
+            dfHHValidation = dfHH.drop(dfHHTraining.index) 
+
+            dfQCDTraining = dfQCD.sample(frac=0.7,random_state=10)
+            dfQCDValidation = dfQCD.drop(dfQCDTraining.index)
+
+            dfNuTraining = dfNu.sample(frac=0.7,random_state=10)
+            dfNuValidation = dfNu.drop(dfNuTraining.index)
+
+            # MERGE
+            dfMergedTraining = pd.concat([dfTauTraining,dfHHTraining,dfNuTraining,dfQCDTraining],sort=False)
+            dfMergedValidation = pd.concat([dfTauTraining,dfHHValidation,dfNuValidation,dfQCDValidation],sort=False)
+
+            print('** INFO: saving file ' + outFileTraining_dict[name])
+            store_tr = pd.HDFStore(outFileTraining_dict[name], mode='w')
+            store_tr[name] = dfMergedTraining
+            store_tr.close()
+
+            print('** INFO: saving file ' + outFileValidation_dict[name])
+            store_val = pd.HDFStore(outFileValidation_dict[name], mode='w')
+            store_val[name] = dfMergedValidation
+            store_val.close()
+
+        # delete variables before next iteration with different FE option
+        if args.doHH: del dfHH
+        if args.doQCD: del dfTau
+        if args.doTau: del dfQCD
+        if args.doNu: del dfNu
+        if args.doTrainValid: del dfMergedTraining, dfMergedValidation, dfHHTraining, dfHHValidation, dfTauTraining, dfTauValidation, dfQCDTraining, dfQCDValidation, dfNuTraining, dfNuValidation
 
         print('\n** INFO: finished cluster matching for the front-end option '+feNames_dict[name])
         print('---------------------------------------------------------------------------------------')

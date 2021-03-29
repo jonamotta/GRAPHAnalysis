@@ -52,7 +52,6 @@ if __name__ == "__main__" :
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
-    parser.add_argument('--doQCD', dest='doQCD', help='do you want to apply PU rejection to QCD?', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
@@ -81,70 +80,37 @@ if __name__ == "__main__" :
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
 
     # define the input and output dictionaries for the handling of different datasets
-    inFileTau_dict = {
-        'threshold'    : indir+'/RelValTenTau_PU200_th_calibrated.hdf5',
+    inFileTraining_dict = {
+        'threshold'    : indir+'/Training_PU200_th_calibrated.hdf5',
         'supertrigger' : indir+'/',
         'bestchoice'   : indir+'/',
         'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
-    inFileNu_dict = {
-        'threshold'    : indir+'/RelValNu_PU200_th_calibrated.hdf5',
+    inFileValidation_dict = {
+        'threshold'    : indir+'/Validation_PU200_th_calibrated.hdf5',
         'supertrigger' : indir+'/',
         'bestchoice'   : indir+'/',
         'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
-    inFileHH_dict = {
-        'threshold'    : indir+'/GluGluHHTo2b2Tau_PU200_th_calibrated.hdf5',
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
-        'mixed'        : indir+'/'
-    }
-
-    outFileTau_dict = {
-        'threshold'    : outdir+'/RelValTenTau_PU200_th_PUrejected.hdf5',
+    outFileTraining_dict = {
+        'threshold'    : outdir+'/Training_PU200_th_PUrejected.hdf5',
         'supertrigger' : outdir+'/',
         'bestchoice'   : outdir+'/',
         'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
-    outFileNu_dict = {
-        'threshold'    : outdir+'/RelValNu_PU200_th_PUrejected.hdf5',
+    outFileValidation_dict = {
+        'threshold'    : outdir+'/Validation_PU200_th_PUrejected.hdf5',
         'supertrigger' : outdir+'/',
         'bestchoice'   : outdir+'/',
         'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
-
-    outFileHH_dict = {
-        'threshold'    : outdir+'/GluGluHHTo2b2Tau_PU200_th_PUrejected.hdf5',
-        'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
-        'mixed'        : outdir+'/'
-    }
-
-    if args.doQCD:
-        inFileQCD_dict = {
-            'threshold'    : indir+'/QCD_PU200_th_calibrated.hdf5',
-            'supertrigger' : indir+'/',
-            'bestchoice'   : indir+'/',
-            'bestcoarse'   : indir+'/',
-            'mixed'        : indir+'/'
-        }
-
-        outFileQCD_dict = {
-            'threshold'    : outdir+'/QCD_PU200_th_PUrejected.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
-            'mixed'        : outdir+'/'
-        }
 
     outFile_model_dict = {
         'threshold'    : model_outdir+'/model_PUrejection_th_PU200.pkl',
@@ -202,24 +168,10 @@ if __name__ == "__main__" :
         'mixed'        : model_outdir+'/'
     }
 
-    dfTau_dict = {}              # dictionary of the skim level tau dataframes
-    dfNu_dict = {}               # dictionary of the skim level nu dataframes
-    dfHH_dict = {}               # dictionary of the skim level HH dataframes
-    dfHHValidation_dict = {}     # dictionary of the validation HH dataframes
-    dfTauTraining_dict = {}      # dictionary of the training tau dataframes
-    dfNuTraining_dict = {}       # dictionary of the training nu dataframes
-    dfNuValidation_dict = {}     # dictionary of the test nu dataframes
-    dfMergedTraining_dict = {}   # dictionary of the merged training dataframes
-    dfMergedValidation_dict = {} # dictionary of the merged test dataframes
-    totalTauEvents_dict = {}     # dictionary of the total number of tau events
-    storedTauEvents_dict = {}    # dictionary of the training number of tau events
-    totalNuEvents_dict = {}      # dictionary of the total number of nu events
-    storedNuEvents_dict = {}     # dictionary of the training number of nu events
-    totalHHEvents_dict = {}      # dictionary of the total number of nu events
-    storedHHEvents_dict = {}     # dictionary of the training number of nu events
-    clustersNperEvent_dict = {}
-
-    if args.doQCD: dfQCD_dict = {} # dictionary of the skim level QCD dataframes
+    dfQCDTraining_dict = {}
+    dfQCDValidation_dict = {}
+    dfTraining_dict = {}
+    dfValidation_dict = {}
 
     # features for BDT training
     features = ['cl3d_abseta', 'cl3d_showerlength','cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_maxlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_layer10', 'cl3d_layer50', 'cl3d_layer90', 'cl3d_ntc67', 'cl3d_ntc90']
@@ -285,91 +237,39 @@ if __name__ == "__main__" :
         print('---------------------------------------------------------------------------------------')
         print('** INFO: starting PU rejection for the front-end option '+feNames_dict[name])
 
-        # fill tau dataframes and dictionaries -> training 
-        store_tau = pd.HDFStore(inFileTau_dict[name], mode='r')
-        dfTau_dict[name] = store_tau[name] 
-        store_tau.close()
-        dfTau_dict[name]['gentau_pid'] = 1 # tag as signal
-
-        # fill nu pileup dataframes and dictionaries -> 1/2 training + 1/2 validation 
-        store_nu = pd.HDFStore(inFileNu_dict[name], mode='r')
-        dfNu_dict[name] = store_nu[name]
-        store_nu.close()
-        dfNu_dict[name]['gentau_pid'] = 0 # tag as PU
-
-        # fill HH dataframes and dictionaries -> validation
-        store_hh = pd.HDFStore(inFileHH_dict[name], mode='r')
-        dfHH_dict[name] = store_hh[name]
-        store_hh.close()
-        dfHH_dict[name]['gentau_pid'] = 1 # tag as signal
-
-        if args.doQCD:
-            # fill QCD dataframes and dictionaries
-            store_qcd = pd.HDFStore(inFileQCD_dict[name], mode='r')
-            dfQCD_dict[name] = store_qcd[name]
-            store_qcd.close()
-            dfQCD_dict[name]['gentau_pid'] = 1 # tag as background
+        store_tr = pd.HDFStore(inFileTraining_dict[name], mode='r')
+        dfTraining_dict[name] = store_tr[name]
+        store_tr.close()
+        
+        store_val = pd.HDFStore(inFileValidation_dict[name], mode='r')
+        dfValidation_dict[name] = store_val[name]
+        store_val.close()
 
 
         ######################### SELECT EVENTS FOR TRAINING #########################
   
-        # SIGNAL
-        totalTauEvents_dict[name] = np.unique(dfTau_dict[name].reset_index()['event']).shape[0]
-        dfTauTraining_dict[name] = dfTau_dict[name]
-        # define selections for the training dataset
-        genPt_sel  = dfTauTraining_dict[name]['gentau_vis_pt'] > 20
-        eta_sel1   = np.abs(dfTauTraining_dict[name]['gentau_vis_eta']) > 1.6
-        eta_sel2   = np.abs(dfTauTraining_dict[name]['gentau_vis_eta']) < 2.9
-        cl3dBest_sel = dfTauTraining_dict[name]['cl3d_isbestmatch'] == True
-        cl3dPt_sel = dfTauTraining_dict[name]['cl3d_pt_c3'] > 4
-        # apply slections for the training dataset
-        dfTauTraining_dict[name] = dfTauTraining_dict[name][genPt_sel & eta_sel1 & eta_sel2 & cl3dBest_sel & cl3dPt_sel]
-        # store the absolute number of events of sgn used for training
-        storedTauEvents_dict[name] = np.unique(dfTauTraining_dict[name].reset_index()['event']).shape[0]
+        dfQCDTraining_dict[name] = dfTraining_dict[name].query('gentau_decayMode==-2')
+        dfQCDTraining_dict[name]['gentau_pid'] = dfQCDTraining_dict[name]['gentau_decayMode'] # create pid column to use as training target
+        dfQCDTraining_dict[name]['gentau_pid'] = dfQCDTraining_dict[name]['gentau_pid'].replace([-2], 0) # tag pileup
 
-        # PILEUP
-        totalNuEvents_dict[name] = np.unique(dfNu_dict[name].reset_index()['event']).shape[0] 
-        dfNuTraining_dict[name] = dfNu_dict[name].sample(frac=0.5,random_state=10)
-        dfNuValidation_dict[name] = dfNu_dict[name].drop(dfNuTraining_dict[name].index)
-        # define selections for the nu dataset
-        cl3dPt_selTrain = dfNuTraining_dict[name]['cl3d_pt_c3'] > 4
-        cl3dPt_selTest = dfNuValidation_dict[name]['cl3d_pt_c3'] > 4
-        # apply slections for the nu dataset
-        dfNuTraining_dict[name] = dfNuTraining_dict[name][cl3dPt_selTrain]
-        dfNuValidation_dict[name] = dfNuValidation_dict[name][cl3dPt_selTest]
-        # store the absolute number of events of sgn used for training
-        storedNuEvents_dict[name] = np.unique(dfNuTraining_dict[name].reset_index()['event']).shape[0]
+        dfQCDValidation_dict[name] = dfValidation_dict[name].query('gentau_decayMode==-2')
+        dfQCDValidation_dict[name]['gentau_pid'] = dfQCDValidation_dict[name]['gentau_decayMode'] # create pid column to use as training target
+        dfQCDValidation_dict[name]['gentau_pid'] = dfQCDValidation_dict[name]['gentau_pid'].replace([-2], 0) # tag QCD as pileup
 
-        # VALIDATION
-        dfHHValidation_dict[name] = dfHH_dict[name]
-        eta_sel1   = np.abs(dfHHValidation_dict[name]['cl3d_eta']) > 1.6
-        eta_sel2   = np.abs(dfHHValidation_dict[name]['cl3d_eta']) < 2.9
-        cl3dPt_sel = dfHHValidation_dict[name]['cl3d_pt_c3'] > 4
-        # apply slections for the validation dataset
-        dfHHValidation_dict[name] = dfHHValidation_dict[name][eta_sel1 & eta_sel2 & cl3dPt_sel]
+        dfTraining_dict[name] = dfTraining_dict[name].query('gentau_decayMode>=-1')
+        dfTraining_dict[name]['gentau_pid'] = dfTraining_dict[name]['gentau_decayMode'] # create pid column to use as training target
+        dfTraining_dict[name]['gentau_pid'] = dfTraining_dict[name]['gentau_pid'].replace([0,1,5,6,10,11], 1) # tag signal
+        dfTraining_dict[name]['gentau_pid'] = dfTraining_dict[name]['gentau_pid'].replace([-1], 0) # tag pileup
+
+        dfValidation_dict[name] = dfValidation_dict[name].query('gentau_decayMode>=-1')
+        dfValidation_dict[name]['gentau_pid'] = dfValidation_dict[name]['gentau_decayMode'] # create pid column to use as training target
+        dfValidation_dict[name]['gentau_pid'] = dfValidation_dict[name]['gentau_pid'].replace([0,1,5,6,10,11], 1) # tag signal
+        dfValidation_dict[name]['gentau_pid'] = dfValidation_dict[name]['gentau_pid'].replace([-1], 0) # tag pileup
         
-        # MERGE
-        dfMergedTraining_dict[name] = pd.concat([dfTauTraining_dict[name],dfNuTraining_dict[name]],sort=False)
-        dfMergedValidation_dict[name] = pd.concat([dfHHValidation_dict[name],dfNuValidation_dict[name]],sort=False)
-
-        print('\n**INFO: with front-end option {0} - #cl3d PU: {1} - #cl3s SGN: {2}'.format(feNames_dict[name], dfNuTraining_dict[name].shape[0], dfTauTraining_dict[name].shape[0]))
-
-
-        ######################### PU CLUSTERS PER EVENT #########################
-
-        sel = dfMergedTraining_dict[name]['gentau_pid']==0
-        dfPU = dfMergedTraining_dict[name][sel]
-        clusters_per_event = dfPU.groupby('event').count()
-        clustersNperEvent_dict[name] = np.mean(clusters_per_event.gentau_pid) * storedNuEvents_dict[name]/totalNuEvents_dict[name]
-        print('\n**INFO: with front-end option {0} - #events stored: {1} - #events total: {2} - clusters/event: {3}'.format(feNames_dict[name], storedNuEvents_dict[name], totalNuEvents_dict[name], clustersNperEvent_dict[name]))
-
 
         ######################### TRAINING OF BDT #########################
 
-        dfMergedTraining_dict[name]['cl3d_abseta'] = np.abs(dfMergedTraining_dict[name].cl3d_eta)
-
-        model_dict[name], fpr_train_dict[name], tpr_train_dict[name], threshold_train_dict[name], fpr_test_dict[name], tpr_test_dict[name], threshold_test_dict[name], testAuroc_dict[name], trainAuroc_dict[name] = train_xgb(dfMergedTraining_dict[name], features, output, params_dict, test_fraction=0.3)
-        fprNcluster_dict[name] = fpr_train_dict[name]*clustersNperEvent_dict[name]
+        model_dict[name], fpr_train_dict[name], tpr_train_dict[name], threshold_train_dict[name], fpr_test_dict[name], tpr_test_dict[name], threshold_test_dict[name], testAuroc_dict[name], trainAuroc_dict[name] = train_xgb(dfTraining_dict[name], features, output, params_dict, test_fraction=0.3)
 
         print('\n** INFO: training and test AUROC:')
         print('  -- training AUROC: {0}'.format(trainAuroc_dict[name]))
@@ -378,7 +278,6 @@ if __name__ == "__main__" :
         save_obj(model_dict[name], outFile_model_dict[name])
         save_obj(fpr_train_dict[name], outFile_fpr_train_dict[name])
         save_obj(tpr_train_dict[name], outFile_tpr_train_dict[name])
-        save_obj(fprNcluster_dict[name], outFile_FPRnClusters_dict[name])
 
         bdtWP99_dict[name] = np.interp(0.99, tpr_train_dict[name], threshold_train_dict[name])
         bdtWP95_dict[name] = np.interp(0.95, tpr_train_dict[name], threshold_train_dict[name])
@@ -395,71 +294,65 @@ if __name__ == "__main__" :
 
         ######################### VALIDATION OF BDT #########################
 
-        full = xgb.DMatrix(data=dfMergedValidation_dict[name][features], label=dfMergedValidation_dict[name][output], feature_names=features)
-        dfMergedValidation_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        full = xgb.DMatrix(data=dfValidation_dict[name][features], label=dfValidation_dict[name][output], feature_names=features)
+        dfValidation_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
 
-        fpr_validation_dict[name], tpr_validation_dict[name], threshold_validation_dict[name] = metrics.roc_curve(dfMergedValidation_dict[name][output], dfMergedValidation_dict[name]['cl3d_pubdt_score'])
-        auroc_validation = metrics.roc_auc_score(dfMergedValidation_dict[name]['gentau_pid'],dfMergedValidation_dict[name]['cl3d_pubdt_score'])
+        fpr_validation_dict[name], tpr_validation_dict[name], threshold_validation_dict[name] = metrics.roc_curve(dfValidation_dict[name][output], dfValidation_dict[name]['cl3d_pubdt_score'])
+        auroc_validation = metrics.roc_auc_score(dfValidation_dict[name]['gentau_pid'],dfValidation_dict[name]['cl3d_pubdt_score'])
 
         print('\n** INFO: validation of the BDT')
         print('  -- validation AUC: {0}'.format(auroc_validation))
 
+
         ######################### APPLICATION OF BDT TO ALL DATASETS #########################
 
-        full = xgb.DMatrix(data=dfTau_dict[name][features], label=dfTau_dict[name][output], feature_names=features)
-        dfTau_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        full = xgb.DMatrix(data=dfTraining_dict[name][features], label=dfTraining_dict[name][output], feature_names=features)
+        dfTraining_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfTraining_dict[name]['cl3d_pubdt_passWP99'] = dfTraining_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
+        dfTraining_dict[name]['cl3d_pubdt_passWP95'] = dfTraining_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
+        dfTraining_dict[name]['cl3d_pubdt_passWP90'] = dfTraining_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
-        dfTau_dict[name]['cl3d_pubdt_passWP99'] = dfTau_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
-        dfTau_dict[name]['cl3d_pubdt_passWP95'] = dfTau_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
-        dfTau_dict[name]['cl3d_pubdt_passWP90'] = dfTau_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
+        full = xgb.DMatrix(data=dfValidation_dict[name][features], label=dfValidation_dict[name][output], feature_names=features)
+        dfValidation_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfValidation_dict[name]['cl3d_pubdt_passWP99'] = dfValidation_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
+        dfValidation_dict[name]['cl3d_pubdt_passWP95'] = dfValidation_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
+        dfValidation_dict[name]['cl3d_pubdt_passWP90'] = dfValidation_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
-        full = xgb.DMatrix(data=dfNu_dict[name][features], label=dfNu_dict[name][output], feature_names=features)
-        dfNu_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        full = xgb.DMatrix(data=dfQCDTraining_dict[name][features], label=dfQCDTraining_dict[name][output], feature_names=features)
+        dfQCDTraining_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfQCDTraining_dict[name]['cl3d_pubdt_passWP99'] = dfQCDTraining_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
+        dfQCDTraining_dict[name]['cl3d_pubdt_passWP95'] = dfQCDTraining_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
+        dfQCDTraining_dict[name]['cl3d_pubdt_passWP90'] = dfQCDTraining_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
-        dfNu_dict[name]['cl3d_pubdt_passWP99'] = dfNu_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
-        dfNu_dict[name]['cl3d_pubdt_passWP95'] = dfNu_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
-        dfNu_dict[name]['cl3d_pubdt_passWP90'] = dfNu_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
+        full = xgb.DMatrix(data=dfQCDValidation_dict[name][features], label=dfQCDValidation_dict[name][output], feature_names=features)
+        dfQCDValidation_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfQCDValidation_dict[name]['cl3d_pubdt_passWP99'] = dfQCDValidation_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
+        dfQCDValidation_dict[name]['cl3d_pubdt_passWP95'] = dfQCDValidation_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
+        dfQCDValidation_dict[name]['cl3d_pubdt_passWP90'] = dfQCDValidation_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
-        full = xgb.DMatrix(data=dfHH_dict[name][features], label=dfHH_dict[name][output], feature_names=features)
-        dfHH_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        QCDtot = pd.concat([dfQCDTraining_dict[name],dfQCDValidation_dict[name]],sort=False)
+        QCD99 = QCDtot.query('cl3d_pubdt_passWP99==True')
+        QCD95 = QCDtot.query('cl3d_pubdt_passWP95==True')
+        QCD90 = QCDtot.query('cl3d_pubdt_passWP90==True')
 
-        dfHH_dict[name]['cl3d_pubdt_passWP99'] = dfHH_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
-        dfHH_dict[name]['cl3d_pubdt_passWP95'] = dfHH_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
-        dfHH_dict[name]['cl3d_pubdt_passWP90'] = dfHH_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
-
-        if args.doQCD:
-            full = xgb.DMatrix(data=dfQCD_dict[name][features], label=dfQCD_dict[name][output], feature_names=features)
-            dfQCD_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
-
-            dfQCD_dict[name]['cl3d_pubdt_passWP99'] = dfQCD_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
-            dfQCD_dict[name]['cl3d_pubdt_passWP95'] = dfQCD_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
-            dfQCD_dict[name]['cl3d_pubdt_passWP90'] = dfQCD_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
-            
-            # print('\n**INFO: rejected PU for QCD dataset and obtained:')
-            # print('  -- total number of QCD events: {0}'.format(dfQCD_dict[name]['cl3d_pubdt_score'].count()))
-            # print(r'  -- number of QCD events passing WP99: {0} ({1}\%)'.format(QCDpassing99, QCDpassing99/QCDtot*100))
-            # print(r'  -- number of QCD events passing WP95: {0} ({1}\%)'.format(QCDpassing95, QCDpassing95/QCDtot*100))
-            # print(r'  -- number of QCD events passing WP90: {0} ({1}\%)'.format(QCDpassing90, QCDpassing90/QCDtot*100))
+        print('\n**INFO: QCD cluster passing the PU rejection:')
+        print('  -- number of QCD events passing WP99: {0}%'.format(QCD99['cl3d_pubdt_passWP99'].count()/QCDtot['cl3d_pubdt_passWP99'].count()*100))
+        print('  -- number of QCD events passing WP95: {0}%'.format(QCD95['cl3d_pubdt_passWP95'].count()/QCDtot['cl3d_pubdt_passWP95'].count()*100))
+        print('  -- number of QCD events passing WP90: {0}%'.format(QCD90['cl3d_pubdt_passWP90'].count()/QCDtot['cl3d_pubdt_passWP90'].count()*100))
 
 
         ######################### SAVE FILES #########################
 
-        store_tau = pd.HDFStore(outFileTau_dict[name], mode='w')
-        store_tau[name] = dfTau_dict[name]
-        store_tau.close()
+        dfTraining_dict[name] = pd.concat([dfTraining_dict[name],dfQCDTraining_dict[name]],sort=False)
+        dfValidation_dict[name] = pd.concat([dfValidation_dict[name],dfQCDValidation_dict[name]],sort=False)
 
-        store_nu = pd.HDFStore(outFileNu_dict[name], mode='w')
-        store_nu[name] = dfNu_dict[name]
-        store_nu.close()
+        store_tr = pd.HDFStore(outFileTraining_dict[name], mode='w')
+        store_tr[name] = dfTraining_dict[name]
+        store_tr.close()
 
-        store_hh = pd.HDFStore(outFileHH_dict[name], mode='w')
-        store_hh[name] = dfHH_dict[name]
-        store_hh.close()
-
-        if args.doQCD:
-            store_qcd = pd.HDFStore(outFileQCD_dict[name], mode='w')
-            store_qcd[name] = dfQCD_dict[name]
-            store_qcd.close()
+        store_val = pd.HDFStore(outFileValidation_dict[name], mode='w')
+        store_val[name] = dfValidation_dict[name]
+        store_val.close()
 
 
         ######################### PRINT SOME INFOS #########################
@@ -481,40 +374,43 @@ if args.doPlots:
     print('---------------------------------------------------------------------------------------')
     print('** INFO: starting plotting')
 
-    ######################### PLOT VARIABLES #########################        
-    print('\n**INFO: plotting features')
-    
-    # name : [title, [min, max, step]
-    features_dict = {'cl3d_abseta'           : [r'TCs |$\eta$|',[1.5,3.,10]], 
-                     'cl3d_showerlength'     : [r'TCs shower length',[0.,35.,15]], 
+    features_dict = {'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,10]], 
+                     'cl3d_showerlength'     : [r'3D cluster shower length',[0.,35.,15]], 
                      'cl3d_coreshowerlength' : [r'Core shower length ',[0.,35.,15]], 
-                     'cl3d_firstlayer'       : [r'TCs first layer',[0.,20.,20]], 
-                     'cl3d_maxlayer'         : [r'TCs maximum layer',[0.,50.,50]], 
-                     'cl3d_szz'              : [r'TCs szz',[0.,60.,20]], 
-                     'cl3d_seetot'           : [r'TCs seetot',[0.,0.15,10]], 
-                     'cl3d_spptot'           : [r'TCs spptot',[0.,0.1,10]], 
-                     'cl3d_srrtot'           : [r'TCs srrtot',[0.,0.01,10]], 
-                     'cl3d_srrmean'          : [r'TCs srrmean',[0.,0.01,10]], 
-                     'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[0.,4.,25]], 
-                     'cl3d_meanz'            : [r'TCs meanz',[325.,375.,30]], 
-                     'cl3d_layer10'          : [r'TCs 10th layer',[0.,15.,30]], 
-                     'cl3d_layer50'          : [r'TCs 50th layer',[0.,30.,60]], 
-                     'cl3d_layer90'          : [r'TCs 90th layer',[0.,40.,40]], 
-                     'cl3d_ntc67'            : [r'Number of TCs with 67% of energy',[0.,50.,10]], 
-                     'cl3d_ntc90'            : [r'Number of TCs with 90% of energy',[0.,100.,20]]
+                     'cl3d_firstlayer'       : [r'3D cluster first layer',[0.,20.,20]], 
+                     'cl3d_maxlayer'         : [r'3D cluster maximum layer',[0.,50.,50]], 
+                     'cl3d_szz'              : [r'3D cluster $\sigma_{zz}$',[0.,60.,20]], 
+                     'cl3d_seetot'           : [r'3D cluster total $\sigma_{ee}$',[0.,0.15,10]], 
+                     'cl3d_spptot'           : [r'3D cluster total $\sigma_{\phi\phi}$',[0.,0.1,10]], 
+                     'cl3d_srrtot'           : [r'3D cluster total $\sigma_{rr}$',[0.,0.01,10]], 
+                     'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[0.,0.01,10]], 
+                     'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[0.,4.,20]], 
+                     'cl3d_meanz'            : [r'3D cluster meanz',[325.,375.,30]], 
+                     'cl3d_layer10'          : [r'N layers with 10% E deposit',[0.,15.,30]], 
+                     'cl3d_layer50'          : [r'N layers with 50% E deposit',[0.,30.,60]], 
+                     'cl3d_layer90'          : [r'N layers with 90% E deposit',[0.,40.,40]], 
+                     'cl3d_ntc67'            : [r'Number of 3D clusters with 67% of energy',[0.,50.,10]], 
+                     'cl3d_ntc90'            : [r'Number of 3D clusters with 90% of energy',[0.,100.,20]]
     }
 
     for name in feNames_dict:
         if not name in args.FE: continue # skip the front-end options that we do not want to do
+        
+        ######################### PLOT FEATURES #########################        
+        print('\n**INFO: plotting features')
+
+        dfNu = dfTraining_dict[name].query('gentau_pid==0')
+        dfTau = dfTraining_dict[name].query('gentau_pid==1')
+
         for var in features_dict:
             plt.figure(figsize=(8,8))
-            plt.hist(dfNu_dict[name][var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='PU events',      color='red',    histtype='step', lw=2, density=True)
-            plt.hist(dfTau_dict[name][var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='TenTau Signal',   color='blue',    histtype='step', lw=2, density=True)
-            plt.hist(dfHH_dict[name][var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='HH Signal',   color='green',    histtype='step', lw=2, density=True)            
+            plt.hist(dfNu[var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='PU events',      color='red',    histtype='step', lw=2, density=True)
+            plt.hist(dfTau[var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='Tau signal',   color='limegreen',    histtype='step', lw=2, density=True)
+            plt.hist(dfQCDTraining_dict[name][var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='QCD background',   color='blue',    histtype='step', lw=2, density=True)
             PUline = mlines.Line2D([], [], color='red',markersize=15, label='PU events',lw=2)
-            SGNline = mlines.Line2D([], [], color='blue',markersize=15, label='TenTau Signal',lw=2)
-            HHline = mlines.Line2D([], [], color='green',markersize=15, label='HH Signal',lw=2)
-            plt.legend(loc = 'upper right',handles=[PUline,SGNline,HHline])
+            SGNline = mlines.Line2D([], [], color='limegreen',markersize=15, label='Tau signal',lw=2)
+            QCDline = mlines.Line2D([], [], color='blue',markersize=15, label='QCD background',lw=2)
+            plt.legend(loc = 'upper right',handles=[PUline,SGNline,QCDline])
             plt.grid(linestyle=':')
             plt.xlabel(features_dict[var][0])
             plt.ylabel(r'Normalized entries')
@@ -522,8 +418,63 @@ if args.doPlots:
             plt.savefig(plotdir+'/'+var+'.pdf')
             plt.close()
 
+        del dfNu, dfTau
 
-    ######################### PLOT ROCS #########################
+        ######################### PLOT SINGLE FE OPTION ROCS #########################
+
+        print('\n** INFO: plotting train-test-validation ROC curves')
+        plt.figure(figsize=(10,10))
+        plt.plot(tpr_train_dict[name],fpr_train_dict[name],label='Train ROC', color='red',lw=2)
+        plt.plot(tpr_test_dict[name],fpr_test_dict[name],label='Test ROC', color='green',lw=2)
+        plt.plot(tpr_validation_dict[name],fpr_validation_dict[name],label='Validation ROC', color='blue',lw=2)
+        plt.grid(linestyle=':')
+        plt.legend(loc = 'upper left', fontsize=22)
+        plt.xlim(0.97,1.001)
+        #plt.yscale('log')
+        #plt.ylim(0.01,1)
+        plt.xlabel('Signal efficiency')
+        plt.ylabel('Background efficiency')
+        plt.title('ROC curves - {0} FE'.format(feNames_dict[name]))
+        plt.savefig(plotdir+'/PUbdt_train_test_validation_rocs_{0}.pdf'.format(feNames_dict[name]))
+        plt.close()
+
+
+        ######################### PLOT FEATURE IMPORTANCES #########################
+
+        matplotlib.rcParams.update({'font.size': 12})
+        print('\n** INFO: plotting features importance and score')
+        plt.figure(figsize=(10,10))
+        importance = model_dict[name].get_score(importance_type='gain')
+        for key in importance:
+            importance[key] = round(importance[key],2)
+        xgb.plot_importance(importance, grid=False, importance_type='gain',lw=2)
+        plt.xlim(0.0,700)
+        plt.subplots_adjust(left=0.28, right=0.85, top=0.9, bottom=0.1)
+        plt.savefig(plotdir+'/PUbdt_importances_'+name+'.pdf')
+        plt.close()
+
+
+        ######################### PLOT BDT SCORE #########################
+
+        dfNu = dfValidation_dict[name].query('gentau_pid==0')
+        dfTau = dfValidation_dict[name].query('gentau_pid==1')
+
+        matplotlib.rcParams.update({'font.size': 22})
+        plt.figure(figsize=(10,10))
+        plt.hist(dfNu['cl3d_pubdt_score'], bins=np.arange(-0.0, 1.0, 0.02), density=True, color='red', histtype='step', lw=2, label='Tau PU=200')
+        plt.hist(dfTau['cl3d_pubdt_score'],  bins=np.arange(-0.0, 1.0, 0.02), density=True, color='blue', histtype='step', lw=2, label='Nu PU=200')
+        plt.hist(dfQCDValidation_dict[name]['cl3d_pubdt_score'],  bins=np.arange(-0.0, 1.0, 0.02), density=True, color='green', histtype='step', lw=2, label='QCD PU=200')
+        plt.legend(loc = 'upper right', fontsize=22)
+        plt.xlabel(r'PU BDT score')
+        plt.ylabel(r'Entries')
+        plt.title('pu rejection BDT score')
+        plt.grid(linestyle=':')
+        plt.savefig(plotdir+'/PUbdt_score_'+name+'.pdf')
+        plt.close()
+
+        del dfNu, dfTau
+
+    ######################### PLOT ALL FE OPTIONS ROCS #########################
     
     print('\n** INFO: plotting test ROC curves')
     plt.figure(figsize=(10,10))
@@ -535,7 +486,7 @@ if args.doPlots:
 
     plt.grid(linestyle=':')
     plt.legend(loc = 'upper left', fontsize=22)
-    plt.xlim(0.9,1.001)
+    plt.xlim(0.97,1.001)
     #plt.yscale('log')
     #plt.ylim(0.01,1)
     plt.xlabel('Signal efficiency')
@@ -554,7 +505,7 @@ if args.doPlots:
 
     plt.grid(linestyle=':')
     plt.legend(loc = 'upper left', fontsize=22)
-    plt.xlim(0.9,1.001)
+    plt.xlim(0.97,1.001)
     #plt.yscale('log')
     #plt.ylim(0.01,1)
     plt.xlabel('Signal efficiency')
@@ -562,77 +513,7 @@ if args.doPlots:
     plt.title('Validation ROC curves')
     plt.savefig(plotdir+'/PUbdt_validation_rocs.pdf')
     plt.close()
-
-    print('\n** INFO: plotting train-test-validation ROC curves')
-    for name in feNames_dict:
-        if not name in args.FE: continue # skip the front-end options that we do not want to do
-        plt.figure(figsize=(10,10))
-        plt.plot(tpr_train_dict[name],fpr_train_dict[name],label='Train ROC', color='red',lw=2)
-        plt.plot(tpr_test_dict[name],fpr_test_dict[name],label='Test ROC', color='green',lw=2)
-        plt.plot(tpr_validation_dict[name],fpr_validation_dict[name],label='Validation ROC', color='blue',lw=2)
-    	plt.grid(linestyle=':')
-    	plt.legend(loc = 'upper left', fontsize=22)
-    	plt.xlim(0.9,1.001)
-    	#plt.yscale('log')
-    	#plt.ylim(0.01,1)
-    	plt.xlabel('Signal efficiency')
-    	plt.ylabel('Background efficiency')
-    	plt.title('ROC curves - {0} FE'.format(feNames_dict[name]))
-    	plt.savefig(plotdir+'/PUbdt_train_test_validation_rocs_{0}.pdf'.format(feNames_dict[name]))
-    	plt.close()
-
-    print('\n** INFO: plotting PUcl3d/event. vs. sgnEff. curves')
-    plt.figure(figsize=(10,10))
-    for name in feNames_dict:
-        if not name in args.FE: continue # skip the front-end options that we do not want to do
-        plt.plot(tpr_train_dict[name],fprNcluster_dict[name],label=legends_dict[name], color=colors_dict[name],lw=2)
-
-    plt.grid(linestyle=':')
-    plt.legend(loc = 'upper left', fontsize=22)
-    plt.xlim(0.9,1.001)
-    #plt.yscale('log')
-    #plt.ylim(0.1,2)
-    plt.xlabel('Signal efficiency')
-    plt.ylabel('PU clusters / event') 
-    plt.title('Cluster/Event ROC curves')
-    plt.savefig(plotdir+'/PUbdt_roc_nclusters.pdf')
-    plt.close()
-
-    
-
-    ######################### PLOT FEATURE IMPORTANCES #########################
-    
-    matplotlib.rcParams.update({'font.size': 12})
-    print('\n** INFO: plotting features importance and score')
-    for name in feNames_dict:
-        if not name in args.FE: continue # skip the front-end options that we do not want to do
-        plt.figure(figsize=(10,10))
-        importance = model_dict[name].get_score(importance_type='gain')
-        for key in importance:
-            importance[key] = round(importance[key],2)
-        xgb.plot_importance(importance, grid=False, importance_type='gain',lw=2)
-        plt.xlim(0.0,700)
-        plt.subplots_adjust(left=0.28, right=0.85, top=0.9, bottom=0.1)
-        plt.savefig(plotdir+'/PUbdt_importances_'+name+'.pdf')
-        plt.close()
-
-
-    ######################### PLOT BDT SCORE #########################
-
-    matplotlib.rcParams.update({'font.size': 22})
-    for name in dfTau_dict:
-        if not name in args.FE: continue # skip the front-end options that we do not want to do
-        plt.figure(figsize=(10,10))
-        plt.hist(dfHH_dict[name]['cl3d_pubdt_score'], bins=np.arange(-0.0, 1.0, 0.02), density=True, color='red', histtype='step', lw=2, label='Tau PU=200')
-        plt.hist(dfNu_dict[name]['cl3d_pubdt_score'],  bins=np.arange(-0.0, 1.0, 0.02), density=True, color='blue', histtype='step', lw=2, label='Nu PU=200')
-        if args.doQCD: plt.hist(dfQCD_dict[name]['cl3d_pubdt_score'],  bins=np.arange(-0.0, 1.0, 0.02), density=True, color='green', histtype='step', lw=2, label='QCD PU=200')
-        plt.legend(loc = 'upper right', fontsize=22)
-        plt.xlabel(r'PU BDT score')
-        plt.ylabel(r'Entries')
-        plt.title('pu rejection BDT score')
-        plt.grid(linestyle=':')
-        plt.savefig(plotdir+'/PUbdt_score_'+name+'.pdf')
-        plt.close()
+        
 
     print('\n** INFO: finished plotting')
     print('---------------------------------------------------------------------------------------')
