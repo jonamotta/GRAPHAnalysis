@@ -322,7 +322,7 @@ if __name__ == "__main__" :
             print('** INFO: matching gentaus for ' + inFileTau_dict[name])
             dfTau = taumatching(df_tau_cl3d, df_tau_gentau, deta_matching, dphi_matching)
             dfTau['dataset'] = 1 # tag the dataset it came from
-
+            print(dfTau)
             print('** INFO: saving file ' + outFileTau_dict[name])
             store_tau = pd.HDFStore(outFileTau_dict[name], mode='w')
             store_tau[name] = dfTau
@@ -372,8 +372,8 @@ if __name__ == "__main__" :
 
         # delete variables before next iteration with different FE option
         if args.doHH: del dfHH
-        if args.doQCD: del dfTau
-        if args.doTau: del dfQCD
+        if args.doQCD: del dfQCD
+        if args.doTau: del dfTau
         if args.doNu: del dfNu
         if args.doTrainValid: del dfMergedTraining, dfMergedValidation, dfHHTraining, dfHHValidation, dfTauTraining, dfTauValidation, dfQCDTraining, dfQCDValidation, dfNuTraining, dfNuValidation
 

@@ -689,7 +689,7 @@ int main (int argc, char** argv)
 
                 if ( abs( (*_in_gentau_eta)[i_gentau] ) <= 1.5 || abs( (*_in_gentau_eta)[i_gentau] ) >= 3.0 ) continue;
 
-                bool ishadronic = ( ((*_in_gentau_decayMode)[i_gentau] == 0) || ((*_in_gentau_decayMode)[i_gentau] == 1) || ((*_in_gentau_decayMode)[i_gentau] == 5) || ((*_in_gentau_decayMode)[i_gentau] == 10) || ((*_in_gentau_decayMode)[i_gentau] == 11) );
+                bool ishadronic = ( ((*_in_gentau_decayMode)[i_gentau] == 0) || ((*_in_gentau_decayMode)[i_gentau] == 1) || ((*_in_gentau_decayMode)[i_gentau] == 10) || ((*_in_gentau_decayMode)[i_gentau] == 11) );
 
                 if(!ishadronic) continue;
 
