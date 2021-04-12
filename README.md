@@ -10,7 +10,7 @@ export SCRAM_ARCH=slc7_amd64_gcc820
 source $VO_CMS_SW_DIR/cmsset_default.sh
 
 cmsrel CMSSW_11_1_0
-cd CMSSW_11_1_0_pre6/src
+cd CMSSW_11_1_0/src
 cmsenv
 
 git clone git@github.com:jonamotta/GRAPHAnalysis.git
