@@ -1,5 +1,0 @@
-root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValTenTau_15_500/RelValTenTau_noPU/210331_142853/0000/ntuple_1.root
-root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValTenTau_15_500/RelValTenTau_noPU/210331_142853/0000/ntuple_2.root
-root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValTenTau_15_500/RelValTenTau_noPU/210331_142853/0000/ntuple_3.root
-root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValTenTau_15_500/RelValTenTau_noPU/210331_142853/0000/ntuple_4.root
-root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValTenTau_15_500/RelValTenTau_noPU/210331_142853/0000/ntuple_5.root
