@@ -28,7 +28,7 @@ if not os.path.isfile(skim_base+'/'+args.iter+'/'+args.dir+'/goodfiles.txt'):
 
 goodfiles = open(skim_base+'/'+args.iter+'/'+args.dir+'/goodfiles.txt')
 
-chain = TChain("SkimmedTree")
+chain = TChain("HGCALskimmedTree")
 
 for file in goodfiles.readlines():
     chain.Add(file.strip())

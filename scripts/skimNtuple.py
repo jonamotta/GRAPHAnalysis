@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_option('--isTau', dest='isTau', help='is the skimming done for tau leptons from HH2b2tau datasets?', default=0)
     parser.add_option('--isQCD', dest='isQCD', help='is the skimming done for tau leptons from MultiTau datasets?', default=0)
     parser.add_option('--nEvents', dest='nEvents', help='number of events to process', default=-1)
+    parser.add_option('--DEBUG', dest='DEBUG', help='print all DEBUG information from skimming process', default=0)
     (opt, args) = parser.parse_args()
 
     currFolder = os.getcwd ()
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         scriptFile.write('cd %s\n'%currFolder)
         scriptFile.write('source scripts/setup.sh\n')
 
-        command = skimmer + ' ' + jobsDir+"/"+listFileName + ' ' + opt.output + '/' + "output_"+str(n)+".root" + ' ' + str(opt.nEvents) + ' ' + str(opt.isTau) + ' ' + str(opt.isQCD)
+        command = skimmer + ' ' + jobsDir+"/"+listFileName + ' ' + opt.output + '/' + "output_"+str(n)+".root" + ' ' + str(opt.nEvents) + ' ' + str(opt.isTau) + ' ' + str(opt.isQCD) + ' ' + str(opt.DEBUG)
         command += ' >& ' + opt.output + '/' + "output_" + str(n) + '.log\n'
         scriptFile.write(command)
 
