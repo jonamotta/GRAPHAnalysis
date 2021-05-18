@@ -172,6 +172,7 @@ public :
    std::vector<float>   *cl3d_phi;
    std::vector<int>     *cl3d_clusters_n;
    std::vector<std::vector<unsigned int> > *cl3d_clusters_id;
+   std::vector<std::vector<float> > *cl3d_layer_pt;
    std::vector<int>     *cl3d_showerlength;
    std::vector<int>     *cl3d_coreshowerlength;
    std::vector<int>     *cl3d_firstlayer;
@@ -205,6 +206,7 @@ public :
    std::vector<float>   *tower_etHad;
    std::vector<int>     *tower_iEta;
    std::vector<int>     *tower_iPhi;
+
    Int_t           cl3dfulltruth_n;
    std::vector<unsigned int> *cl3dfulltruth_id;
    std::vector<float>   *cl3dfulltruth_pt;
@@ -213,6 +215,7 @@ public :
    std::vector<float>   *cl3dfulltruth_phi;
    std::vector<int>     *cl3dfulltruth_clusters_n;
    std::vector<std::vector<unsigned int> > *cl3dfulltruth_clusters_id;
+   std::vector<std::vector<float> > *cl3dfulltruth_layer_pt;
    std::vector<int>     *cl3dfulltruth_showerlength;
    std::vector<int>     *cl3dfulltruth_coreshowerlength;
    std::vector<int>     *cl3dfulltruth_firstlayer;
@@ -273,6 +276,7 @@ public :
    std::vector<float>   *cl3dtruth_phi;
    std::vector<int>     *cl3dtruth_clusters_n;
    std::vector<std::vector<unsigned int> > *cl3dtruth_clusters_id;
+   std::vector<std::vector<float> > *cl3dtruth_layer_pt;
    std::vector<int>     *cl3dtruth_showerlength;
    std::vector<int>     *cl3dtruth_coreshowerlength;
    std::vector<int>     *cl3dtruth_firstlayer;
@@ -458,6 +462,7 @@ public :
    TBranch        *b_cl3d_phi;   //!
    TBranch        *b_cl3d_clusters_n;   //!
    TBranch        *b_cl3d_clusters_id;   //!
+   TBranch        *b_cl3d_layer_pt;   //!
    TBranch        *b_cl3d_showerlength;   //!
    TBranch        *b_cl3d_coreshowerlength;   //!
    TBranch        *b_cl3d_firstlayer;   //!
@@ -499,6 +504,7 @@ public :
    TBranch        *b_cl3dfulltruth_phi;   //!
    TBranch        *b_cl3dfulltruth_clusters_n;   //!
    TBranch        *b_cl3dfulltruth_clusters_id;   //!
+   TBranch        *b_cl3dfulltruth_layer_pt;   //!
    TBranch        *b_cl3dfulltruth_showerlength;   //!
    TBranch        *b_cl3dfulltruth_coreshowerlength;   //!
    TBranch        *b_cl3dfulltruth_firstlayer;   //!
@@ -559,6 +565,7 @@ public :
    TBranch        *b_cl3dtruth_phi;   //!
    TBranch        *b_cl3dtruth_clusters_n;   //!
    TBranch        *b_cl3dtruth_clusters_id;   //!
+   TBranch        *b_cl3dtruth_layer_pt;   //!
    TBranch        *b_cl3dtruth_showerlength;   //!
    TBranch        *b_cl3dtruth_coreshowerlength;   //!
    TBranch        *b_cl3dtruth_firstlayer;   //!
@@ -743,6 +750,7 @@ public :
       cl3d_phi = 0;
       cl3d_clusters_n = 0;
       cl3d_clusters_id = 0;
+      cl3d_layer_pt = 0;
       cl3d_showerlength = 0;
       cl3d_coreshowerlength = 0;
       cl3d_firstlayer = 0;
@@ -782,6 +790,7 @@ public :
       cl3dfulltruth_phi = 0;
       cl3dfulltruth_clusters_n = 0;
       cl3dfulltruth_clusters_id = 0;
+      cl3dfulltruth_layer_pt = 0;
       cl3dfulltruth_showerlength = 0;
       cl3dfulltruth_coreshowerlength = 0;
       cl3dfulltruth_firstlayer = 0;
@@ -840,6 +849,7 @@ public :
       cl3dtruth_phi = 0;
       cl3dtruth_clusters_n = 0;
       cl3dtruth_clusters_id = 0;
+      cl3dtruth_layer_pt = 0;
       cl3dtruth_showerlength = 0;
       cl3dtruth_coreshowerlength = 0;
       cl3dtruth_firstlayer = 0;
@@ -998,7 +1008,6 @@ public :
       fChain->SetBranchAddress("tc_cluster_id", &tc_cluster_id, &b_tc_cluster_id);
       fChain->SetBranchAddress("tc_multicluster_id", &tc_multicluster_id, &b_tc_multicluster_id);
       fChain->SetBranchAddress("tc_multicluster_pt", &tc_multicluster_pt, &b_tc_multicluster_pt);
-      fChain->SetBranchAddress("tc_genparticle_index", &tc_genparticle_index, &b_tc_genparticle_index);
       fChain->SetBranchAddress("ts_n", &ts_n, &b_ts_n);
       fChain->SetBranchAddress("ts_id", &ts_id, &b_ts_id);
       fChain->SetBranchAddress("ts_subdet", &ts_subdet, &b_ts_subdet);
@@ -1025,6 +1034,7 @@ public :
       fChain->SetBranchAddress("cl3d_phi", &cl3d_phi, &b_cl3d_phi);
       fChain->SetBranchAddress("cl3d_clusters_n", &cl3d_clusters_n, &b_cl3d_clusters_n);
       fChain->SetBranchAddress("cl3d_clusters_id", &cl3d_clusters_id, &b_cl3d_clusters_id);
+      fChain->SetBranchAddress("cl3d_layer_pt", &cl3d_layer_pt, &b_cl3d_layer_pt);
       fChain->SetBranchAddress("cl3d_showerlength", &cl3d_showerlength, &b_cl3d_showerlength);
       fChain->SetBranchAddress("cl3d_coreshowerlength", &cl3d_coreshowerlength, &b_cl3d_coreshowerlength);
       fChain->SetBranchAddress("cl3d_firstlayer", &cl3d_firstlayer, &b_cl3d_firstlayer);
@@ -1058,107 +1068,113 @@ public :
       fChain->SetBranchAddress("tower_etHad", &tower_etHad, &b_tower_etHad);
       fChain->SetBranchAddress("tower_iEta", &tower_iEta, &b_tower_iEta);
       fChain->SetBranchAddress("tower_iPhi", &tower_iPhi, &b_tower_iPhi);
-      fChain->SetBranchAddress("cl3dfulltruth_n", &cl3dfulltruth_n, &b_cl3dfulltruth_n);
-      fChain->SetBranchAddress("cl3dfulltruth_id", &cl3dfulltruth_id, &b_cl3dfulltruth_id);
-      fChain->SetBranchAddress("cl3dfulltruth_pt", &cl3dfulltruth_pt, &b_cl3dfulltruth_pt);
-      fChain->SetBranchAddress("cl3dfulltruth_energy", &cl3dfulltruth_energy, &b_cl3dfulltruth_energy);
-      fChain->SetBranchAddress("cl3dfulltruth_eta", &cl3dfulltruth_eta, &b_cl3dfulltruth_eta);
-      fChain->SetBranchAddress("cl3dfulltruth_phi", &cl3dfulltruth_phi, &b_cl3dfulltruth_phi);
-      fChain->SetBranchAddress("cl3dfulltruth_clusters_n", &cl3dfulltruth_clusters_n, &b_cl3dfulltruth_clusters_n);
-      fChain->SetBranchAddress("cl3dfulltruth_clusters_id", &cl3dfulltruth_clusters_id, &b_cl3dfulltruth_clusters_id);
-      fChain->SetBranchAddress("cl3dfulltruth_showerlength", &cl3dfulltruth_showerlength, &b_cl3dfulltruth_showerlength);
-      fChain->SetBranchAddress("cl3dfulltruth_coreshowerlength", &cl3dfulltruth_coreshowerlength, &b_cl3dfulltruth_coreshowerlength);
-      fChain->SetBranchAddress("cl3dfulltruth_firstlayer", &cl3dfulltruth_firstlayer, &b_cl3dfulltruth_firstlayer);
-      fChain->SetBranchAddress("cl3dfulltruth_maxlayer", &cl3dfulltruth_maxlayer, &b_cl3dfulltruth_maxlayer);
-      fChain->SetBranchAddress("cl3dfulltruth_seetot", &cl3dfulltruth_seetot, &b_cl3dfulltruth_seetot);
-      fChain->SetBranchAddress("cl3dfulltruth_seemax", &cl3dfulltruth_seemax, &b_cl3dfulltruth_seemax);
-      fChain->SetBranchAddress("cl3dfulltruth_spptot", &cl3dfulltruth_spptot, &b_cl3dfulltruth_spptot);
-      fChain->SetBranchAddress("cl3dfulltruth_sppmax", &cl3dfulltruth_sppmax, &b_cl3dfulltruth_sppmax);
-      fChain->SetBranchAddress("cl3dfulltruth_szz", &cl3dfulltruth_szz, &b_cl3dfulltruth_szz);
-      fChain->SetBranchAddress("cl3dfulltruth_srrtot", &cl3dfulltruth_srrtot, &b_cl3dfulltruth_srrtot);
-      fChain->SetBranchAddress("cl3dfulltruth_srrmax", &cl3dfulltruth_srrmax, &b_cl3dfulltruth_srrmax);
-      fChain->SetBranchAddress("cl3dfulltruth_srrmean", &cl3dfulltruth_srrmean, &b_cl3dfulltruth_srrmean);
-      fChain->SetBranchAddress("cl3dfulltruth_emaxe", &cl3dfulltruth_emaxe, &b_cl3dfulltruth_emaxe);
-      fChain->SetBranchAddress("cl3dfulltruth_hoe", &cl3dfulltruth_hoe, &b_cl3dfulltruth_hoe);
-      fChain->SetBranchAddress("cl3dfulltruth_meanz", &cl3dfulltruth_meanz, &b_cl3dfulltruth_meanz);
-      fChain->SetBranchAddress("cl3dfulltruth_layer10", &cl3dfulltruth_layer10, &b_cl3dfulltruth_layer10);
-      fChain->SetBranchAddress("cl3dfulltruth_layer50", &cl3dfulltruth_layer50, &b_cl3dfulltruth_layer50);
-      fChain->SetBranchAddress("cl3dfulltruth_layer90", &cl3dfulltruth_layer90, &b_cl3dfulltruth_layer90);
-      fChain->SetBranchAddress("cl3dfulltruth_ntc67", &cl3dfulltruth_ntc67, &b_cl3dfulltruth_ntc67);
-      fChain->SetBranchAddress("cl3dfulltruth_ntc90", &cl3dfulltruth_ntc90, &b_cl3dfulltruth_ntc90);
-      fChain->SetBranchAddress("cl3dfulltruth_bdteg", &cl3dfulltruth_bdteg, &b_cl3dfulltruth_bdteg);
-      fChain->SetBranchAddress("cl3dfulltruth_quality", &cl3dfulltruth_quality, &b_cl3dfulltruth_quality);
-      fChain->SetBranchAddress("cl3dfulltruth_ipt", &cl3dfulltruth_ipt, &b_cl3dfulltruth_ipt);
-      fChain->SetBranchAddress("cl3dfulltruth_ienergy", &cl3dfulltruth_ienergy, &b_cl3dfulltruth_ienergy);
-      fChain->SetBranchAddress("tctruth_n", &tctruth_n, &b_tctruth_n);
-      fChain->SetBranchAddress("tctruth_id", &tctruth_id, &b_tctruth_id);
-      fChain->SetBranchAddress("tctruth_subdet", &tctruth_subdet, &b_tctruth_subdet);
-      fChain->SetBranchAddress("tctruth_zside", &tctruth_zside, &b_tctruth_zside);
-      fChain->SetBranchAddress("tctruth_layer", &tctruth_layer, &b_tctruth_layer);
-      fChain->SetBranchAddress("tctruth_wafer", &tctruth_wafer, &b_tctruth_wafer);
-      fChain->SetBranchAddress("tctruth_waferu", &tctruth_waferu, &b_tctruth_waferu);
-      fChain->SetBranchAddress("tctruth_waferv", &tctruth_waferv, &b_tctruth_waferv);
-      fChain->SetBranchAddress("tctruth_wafertype", &tctruth_wafertype, &b_tctruth_wafertype);
-      fChain->SetBranchAddress("tctruth_panel_number", &tctruth_panel_number, &b_tctruth_panel_number);
-      fChain->SetBranchAddress("tctruth_panel_sector", &tctruth_panel_sector, &b_tctruth_panel_sector);
-      fChain->SetBranchAddress("tctruth_cell", &tctruth_cell, &b_tctruth_cell);
-      fChain->SetBranchAddress("tctruth_cellu", &tctruth_cellu, &b_tctruth_cellu);
-      fChain->SetBranchAddress("tctruth_cellv", &tctruth_cellv, &b_tctruth_cellv);
-      fChain->SetBranchAddress("tctruth_data", &tctruth_data, &b_tctruth_data);
-      fChain->SetBranchAddress("tctruth_uncompressedCharge", &tctruth_uncompressedCharge, &b_tctruth_uncompressedCharge);
-      fChain->SetBranchAddress("tctruth_compressedCharge", &tctruth_compressedCharge, &b_tctruth_compressedCharge);
-      fChain->SetBranchAddress("tctruth_pt", &tctruth_pt, &b_tctruth_pt);
-      fChain->SetBranchAddress("tctruth_mipPt", &tctruth_mipPt, &b_tctruth_mipPt);
-      fChain->SetBranchAddress("tctruth_energy", &tctruth_energy, &b_tctruth_energy);
-      fChain->SetBranchAddress("tctruth_eta", &tctruth_eta, &b_tctruth_eta);
-      fChain->SetBranchAddress("tctruth_phi", &tctruth_phi, &b_tctruth_phi);
-      fChain->SetBranchAddress("tctruth_x", &tctruth_x, &b_tctruth_x);
-      fChain->SetBranchAddress("tctruth_y", &tctruth_y, &b_tctruth_y);
-      fChain->SetBranchAddress("tctruth_z", &tctruth_z, &b_tctruth_z);
-      fChain->SetBranchAddress("tctruth_cluster_id", &tctruth_cluster_id, &b_tctruth_cluster_id);
-      fChain->SetBranchAddress("tctruth_multicluster_id", &tctruth_multicluster_id, &b_tctruth_multicluster_id);
-      fChain->SetBranchAddress("tctruth_multicluster_pt", &tctruth_multicluster_pt, &b_tctruth_multicluster_pt);
-      fChain->SetBranchAddress("cl3dtruth_n", &cl3dtruth_n, &b_cl3dtruth_n);
-      fChain->SetBranchAddress("cl3dtruth_id", &cl3dtruth_id, &b_cl3dtruth_id);
-      fChain->SetBranchAddress("cl3dtruth_pt", &cl3dtruth_pt, &b_cl3dtruth_pt);
-      fChain->SetBranchAddress("cl3dtruth_energy", &cl3dtruth_energy, &b_cl3dtruth_energy);
-      fChain->SetBranchAddress("cl3dtruth_eta", &cl3dtruth_eta, &b_cl3dtruth_eta);
-      fChain->SetBranchAddress("cl3dtruth_phi", &cl3dtruth_phi, &b_cl3dtruth_phi);
-      fChain->SetBranchAddress("cl3dtruth_clusters_n", &cl3dtruth_clusters_n, &b_cl3dtruth_clusters_n);
-      fChain->SetBranchAddress("cl3dtruth_clusters_id", &cl3dtruth_clusters_id, &b_cl3dtruth_clusters_id);
-      fChain->SetBranchAddress("cl3dtruth_showerlength", &cl3dtruth_showerlength, &b_cl3dtruth_showerlength);
-      fChain->SetBranchAddress("cl3dtruth_coreshowerlength", &cl3dtruth_coreshowerlength, &b_cl3dtruth_coreshowerlength);
-      fChain->SetBranchAddress("cl3dtruth_firstlayer", &cl3dtruth_firstlayer, &b_cl3dtruth_firstlayer);
-      fChain->SetBranchAddress("cl3dtruth_maxlayer", &cl3dtruth_maxlayer, &b_cl3dtruth_maxlayer);
-      fChain->SetBranchAddress("cl3dtruth_seetot", &cl3dtruth_seetot, &b_cl3dtruth_seetot);
-      fChain->SetBranchAddress("cl3dtruth_seemax", &cl3dtruth_seemax, &b_cl3dtruth_seemax);
-      fChain->SetBranchAddress("cl3dtruth_spptot", &cl3dtruth_spptot, &b_cl3dtruth_spptot);
-      fChain->SetBranchAddress("cl3dtruth_sppmax", &cl3dtruth_sppmax, &b_cl3dtruth_sppmax);
-      fChain->SetBranchAddress("cl3dtruth_szz", &cl3dtruth_szz, &b_cl3dtruth_szz);
-      fChain->SetBranchAddress("cl3dtruth_srrtot", &cl3dtruth_srrtot, &b_cl3dtruth_srrtot);
-      fChain->SetBranchAddress("cl3dtruth_srrmax", &cl3dtruth_srrmax, &b_cl3dtruth_srrmax);
-      fChain->SetBranchAddress("cl3dtruth_srrmean", &cl3dtruth_srrmean, &b_cl3dtruth_srrmean);
-      fChain->SetBranchAddress("cl3dtruth_emaxe", &cl3dtruth_emaxe, &b_cl3dtruth_emaxe);
-      fChain->SetBranchAddress("cl3dtruth_hoe", &cl3dtruth_hoe, &b_cl3dtruth_hoe);
-      fChain->SetBranchAddress("cl3dtruth_meanz", &cl3dtruth_meanz, &b_cl3dtruth_meanz);
-      fChain->SetBranchAddress("cl3dtruth_layer10", &cl3dtruth_layer10, &b_cl3dtruth_layer10);
-      fChain->SetBranchAddress("cl3dtruth_layer50", &cl3dtruth_layer50, &b_cl3dtruth_layer50);
-      fChain->SetBranchAddress("cl3dtruth_layer90", &cl3dtruth_layer90, &b_cl3dtruth_layer90);
-      fChain->SetBranchAddress("cl3dtruth_ntc67", &cl3dtruth_ntc67, &b_cl3dtruth_ntc67);
-      fChain->SetBranchAddress("cl3dtruth_ntc90", &cl3dtruth_ntc90, &b_cl3dtruth_ntc90);
-      fChain->SetBranchAddress("cl3dtruth_bdteg", &cl3dtruth_bdteg, &b_cl3dtruth_bdteg);
-      fChain->SetBranchAddress("cl3dtruth_quality", &cl3dtruth_quality, &b_cl3dtruth_quality);
-      fChain->SetBranchAddress("cl3dtruth_ipt", &cl3dtruth_ipt, &b_cl3dtruth_ipt);
-      fChain->SetBranchAddress("cl3dtruth_ienergy", &cl3dtruth_ienergy, &b_cl3dtruth_ienergy);
-      fChain->SetBranchAddress("towertruth_n", &towertruth_n, &b_towertruth_n);
-      fChain->SetBranchAddress("towertruth_pt", &towertruth_pt, &b_towertruth_pt);
-      fChain->SetBranchAddress("towertruth_energy", &towertruth_energy, &b_towertruth_energy);
-      fChain->SetBranchAddress("towertruth_eta", &towertruth_eta, &b_towertruth_eta);
-      fChain->SetBranchAddress("towertruth_phi", &towertruth_phi, &b_towertruth_phi);
-      fChain->SetBranchAddress("towertruth_etEm", &towertruth_etEm, &b_towertruth_etEm);
-      fChain->SetBranchAddress("towertruth_etHad", &towertruth_etHad, &b_towertruth_etHad);
-      fChain->SetBranchAddress("towertruth_iEta", &towertruth_iEta, &b_towertruth_iEta);
-      fChain->SetBranchAddress("towertruth_iPhi", &towertruth_iPhi, &b_towertruth_iPhi);
+
+      if (fChain->GetListOfBranches()->FindObject("cl3dfulltruth_n")) {
+         fChain->SetBranchAddress("tc_genparticle_index", &tc_genparticle_index, &b_tc_genparticle_index);
+         fChain->SetBranchAddress("cl3dfulltruth_n", &cl3dfulltruth_n, &b_cl3dfulltruth_n);
+         fChain->SetBranchAddress("cl3dfulltruth_id", &cl3dfulltruth_id, &b_cl3dfulltruth_id);
+         fChain->SetBranchAddress("cl3dfulltruth_pt", &cl3dfulltruth_pt, &b_cl3dfulltruth_pt);
+         fChain->SetBranchAddress("cl3dfulltruth_energy", &cl3dfulltruth_energy, &b_cl3dfulltruth_energy);
+         fChain->SetBranchAddress("cl3dfulltruth_eta", &cl3dfulltruth_eta, &b_cl3dfulltruth_eta);
+         fChain->SetBranchAddress("cl3dfulltruth_phi", &cl3dfulltruth_phi, &b_cl3dfulltruth_phi);
+         fChain->SetBranchAddress("cl3dfulltruth_clusters_n", &cl3dfulltruth_clusters_n, &b_cl3dfulltruth_clusters_n);
+         fChain->SetBranchAddress("cl3dfulltruth_clusters_id", &cl3dfulltruth_clusters_id, &b_cl3dfulltruth_clusters_id);
+         fChain->SetBranchAddress("cl3dfulltruth_layer_pt", &cl3dfulltruth_layer_pt, &b_cl3dfulltruth_layer_pt);
+         fChain->SetBranchAddress("cl3dfulltruth_showerlength", &cl3dfulltruth_showerlength, &b_cl3dfulltruth_showerlength);
+         fChain->SetBranchAddress("cl3dfulltruth_coreshowerlength", &cl3dfulltruth_coreshowerlength, &b_cl3dfulltruth_coreshowerlength);
+         fChain->SetBranchAddress("cl3dfulltruth_firstlayer", &cl3dfulltruth_firstlayer, &b_cl3dfulltruth_firstlayer);
+         fChain->SetBranchAddress("cl3dfulltruth_maxlayer", &cl3dfulltruth_maxlayer, &b_cl3dfulltruth_maxlayer);
+         fChain->SetBranchAddress("cl3dfulltruth_seetot", &cl3dfulltruth_seetot, &b_cl3dfulltruth_seetot);
+         fChain->SetBranchAddress("cl3dfulltruth_seemax", &cl3dfulltruth_seemax, &b_cl3dfulltruth_seemax);
+         fChain->SetBranchAddress("cl3dfulltruth_spptot", &cl3dfulltruth_spptot, &b_cl3dfulltruth_spptot);
+         fChain->SetBranchAddress("cl3dfulltruth_sppmax", &cl3dfulltruth_sppmax, &b_cl3dfulltruth_sppmax);
+         fChain->SetBranchAddress("cl3dfulltruth_szz", &cl3dfulltruth_szz, &b_cl3dfulltruth_szz);
+         fChain->SetBranchAddress("cl3dfulltruth_srrtot", &cl3dfulltruth_srrtot, &b_cl3dfulltruth_srrtot);
+         fChain->SetBranchAddress("cl3dfulltruth_srrmax", &cl3dfulltruth_srrmax, &b_cl3dfulltruth_srrmax);
+         fChain->SetBranchAddress("cl3dfulltruth_srrmean", &cl3dfulltruth_srrmean, &b_cl3dfulltruth_srrmean);
+         fChain->SetBranchAddress("cl3dfulltruth_emaxe", &cl3dfulltruth_emaxe, &b_cl3dfulltruth_emaxe);
+         fChain->SetBranchAddress("cl3dfulltruth_hoe", &cl3dfulltruth_hoe, &b_cl3dfulltruth_hoe);
+         fChain->SetBranchAddress("cl3dfulltruth_meanz", &cl3dfulltruth_meanz, &b_cl3dfulltruth_meanz);
+         fChain->SetBranchAddress("cl3dfulltruth_layer10", &cl3dfulltruth_layer10, &b_cl3dfulltruth_layer10);
+         fChain->SetBranchAddress("cl3dfulltruth_layer50", &cl3dfulltruth_layer50, &b_cl3dfulltruth_layer50);
+         fChain->SetBranchAddress("cl3dfulltruth_layer90", &cl3dfulltruth_layer90, &b_cl3dfulltruth_layer90);
+         fChain->SetBranchAddress("cl3dfulltruth_ntc67", &cl3dfulltruth_ntc67, &b_cl3dfulltruth_ntc67);
+         fChain->SetBranchAddress("cl3dfulltruth_ntc90", &cl3dfulltruth_ntc90, &b_cl3dfulltruth_ntc90);
+         fChain->SetBranchAddress("cl3dfulltruth_bdteg", &cl3dfulltruth_bdteg, &b_cl3dfulltruth_bdteg);
+         fChain->SetBranchAddress("cl3dfulltruth_quality", &cl3dfulltruth_quality, &b_cl3dfulltruth_quality);
+         fChain->SetBranchAddress("cl3dfulltruth_ipt", &cl3dfulltruth_ipt, &b_cl3dfulltruth_ipt);
+         fChain->SetBranchAddress("cl3dfulltruth_ienergy", &cl3dfulltruth_ienergy, &b_cl3dfulltruth_ienergy);
+         fChain->SetBranchAddress("tctruth_n", &tctruth_n, &b_tctruth_n);
+         fChain->SetBranchAddress("tctruth_id", &tctruth_id, &b_tctruth_id);
+         fChain->SetBranchAddress("tctruth_subdet", &tctruth_subdet, &b_tctruth_subdet);
+         fChain->SetBranchAddress("tctruth_zside", &tctruth_zside, &b_tctruth_zside);
+         fChain->SetBranchAddress("tctruth_layer", &tctruth_layer, &b_tctruth_layer);
+         fChain->SetBranchAddress("tctruth_wafer", &tctruth_wafer, &b_tctruth_wafer);
+         fChain->SetBranchAddress("tctruth_waferu", &tctruth_waferu, &b_tctruth_waferu);
+         fChain->SetBranchAddress("tctruth_waferv", &tctruth_waferv, &b_tctruth_waferv);
+         fChain->SetBranchAddress("tctruth_wafertype", &tctruth_wafertype, &b_tctruth_wafertype);
+         fChain->SetBranchAddress("tctruth_panel_number", &tctruth_panel_number, &b_tctruth_panel_number);
+         fChain->SetBranchAddress("tctruth_panel_sector", &tctruth_panel_sector, &b_tctruth_panel_sector);
+         fChain->SetBranchAddress("tctruth_cell", &tctruth_cell, &b_tctruth_cell);
+         fChain->SetBranchAddress("tctruth_cellu", &tctruth_cellu, &b_tctruth_cellu);
+         fChain->SetBranchAddress("tctruth_cellv", &tctruth_cellv, &b_tctruth_cellv);
+         fChain->SetBranchAddress("tctruth_data", &tctruth_data, &b_tctruth_data);
+         fChain->SetBranchAddress("tctruth_uncompressedCharge", &tctruth_uncompressedCharge, &b_tctruth_uncompressedCharge);
+         fChain->SetBranchAddress("tctruth_compressedCharge", &tctruth_compressedCharge, &b_tctruth_compressedCharge);
+         fChain->SetBranchAddress("tctruth_pt", &tctruth_pt, &b_tctruth_pt);
+         fChain->SetBranchAddress("tctruth_mipPt", &tctruth_mipPt, &b_tctruth_mipPt);
+         fChain->SetBranchAddress("tctruth_energy", &tctruth_energy, &b_tctruth_energy);
+         fChain->SetBranchAddress("tctruth_eta", &tctruth_eta, &b_tctruth_eta);
+         fChain->SetBranchAddress("tctruth_phi", &tctruth_phi, &b_tctruth_phi);
+         fChain->SetBranchAddress("tctruth_x", &tctruth_x, &b_tctruth_x);
+         fChain->SetBranchAddress("tctruth_y", &tctruth_y, &b_tctruth_y);
+         fChain->SetBranchAddress("tctruth_z", &tctruth_z, &b_tctruth_z);
+         fChain->SetBranchAddress("tctruth_cluster_id", &tctruth_cluster_id, &b_tctruth_cluster_id);
+         fChain->SetBranchAddress("tctruth_multicluster_id", &tctruth_multicluster_id, &b_tctruth_multicluster_id);
+         fChain->SetBranchAddress("tctruth_multicluster_pt", &tctruth_multicluster_pt, &b_tctruth_multicluster_pt);
+         fChain->SetBranchAddress("cl3dtruth_n", &cl3dtruth_n, &b_cl3dtruth_n);
+         fChain->SetBranchAddress("cl3dtruth_id", &cl3dtruth_id, &b_cl3dtruth_id);
+         fChain->SetBranchAddress("cl3dtruth_pt", &cl3dtruth_pt, &b_cl3dtruth_pt);
+         fChain->SetBranchAddress("cl3dtruth_energy", &cl3dtruth_energy, &b_cl3dtruth_energy);
+         fChain->SetBranchAddress("cl3dtruth_eta", &cl3dtruth_eta, &b_cl3dtruth_eta);
+         fChain->SetBranchAddress("cl3dtruth_phi", &cl3dtruth_phi, &b_cl3dtruth_phi);
+         fChain->SetBranchAddress("cl3dtruth_clusters_n", &cl3dtruth_clusters_n, &b_cl3dtruth_clusters_n);
+         fChain->SetBranchAddress("cl3dtruth_clusters_id", &cl3dtruth_clusters_id, &b_cl3dtruth_clusters_id);
+         fChain->SetBranchAddress("cl3dtruth_layer_pt", &cl3dtruth_layer_pt, &b_cl3dtruth_layer_pt);
+         fChain->SetBranchAddress("cl3dtruth_showerlength", &cl3dtruth_showerlength, &b_cl3dtruth_showerlength);
+         fChain->SetBranchAddress("cl3dtruth_coreshowerlength", &cl3dtruth_coreshowerlength, &b_cl3dtruth_coreshowerlength);
+         fChain->SetBranchAddress("cl3dtruth_firstlayer", &cl3dtruth_firstlayer, &b_cl3dtruth_firstlayer);
+         fChain->SetBranchAddress("cl3dtruth_maxlayer", &cl3dtruth_maxlayer, &b_cl3dtruth_maxlayer);
+         fChain->SetBranchAddress("cl3dtruth_seetot", &cl3dtruth_seetot, &b_cl3dtruth_seetot);
+         fChain->SetBranchAddress("cl3dtruth_seemax", &cl3dtruth_seemax, &b_cl3dtruth_seemax);
+         fChain->SetBranchAddress("cl3dtruth_spptot", &cl3dtruth_spptot, &b_cl3dtruth_spptot);
+         fChain->SetBranchAddress("cl3dtruth_sppmax", &cl3dtruth_sppmax, &b_cl3dtruth_sppmax);
+         fChain->SetBranchAddress("cl3dtruth_szz", &cl3dtruth_szz, &b_cl3dtruth_szz);
+         fChain->SetBranchAddress("cl3dtruth_srrtot", &cl3dtruth_srrtot, &b_cl3dtruth_srrtot);
+         fChain->SetBranchAddress("cl3dtruth_srrmax", &cl3dtruth_srrmax, &b_cl3dtruth_srrmax);
+         fChain->SetBranchAddress("cl3dtruth_srrmean", &cl3dtruth_srrmean, &b_cl3dtruth_srrmean);
+         fChain->SetBranchAddress("cl3dtruth_emaxe", &cl3dtruth_emaxe, &b_cl3dtruth_emaxe);
+         fChain->SetBranchAddress("cl3dtruth_hoe", &cl3dtruth_hoe, &b_cl3dtruth_hoe);
+         fChain->SetBranchAddress("cl3dtruth_meanz", &cl3dtruth_meanz, &b_cl3dtruth_meanz);
+         fChain->SetBranchAddress("cl3dtruth_layer10", &cl3dtruth_layer10, &b_cl3dtruth_layer10);
+         fChain->SetBranchAddress("cl3dtruth_layer50", &cl3dtruth_layer50, &b_cl3dtruth_layer50);
+         fChain->SetBranchAddress("cl3dtruth_layer90", &cl3dtruth_layer90, &b_cl3dtruth_layer90);
+         fChain->SetBranchAddress("cl3dtruth_ntc67", &cl3dtruth_ntc67, &b_cl3dtruth_ntc67);
+         fChain->SetBranchAddress("cl3dtruth_ntc90", &cl3dtruth_ntc90, &b_cl3dtruth_ntc90);
+         fChain->SetBranchAddress("cl3dtruth_bdteg", &cl3dtruth_bdteg, &b_cl3dtruth_bdteg);
+         fChain->SetBranchAddress("cl3dtruth_quality", &cl3dtruth_quality, &b_cl3dtruth_quality);
+         fChain->SetBranchAddress("cl3dtruth_ipt", &cl3dtruth_ipt, &b_cl3dtruth_ipt);
+         fChain->SetBranchAddress("cl3dtruth_ienergy", &cl3dtruth_ienergy, &b_cl3dtruth_ienergy);
+         fChain->SetBranchAddress("towertruth_n", &towertruth_n, &b_towertruth_n);
+         fChain->SetBranchAddress("towertruth_pt", &towertruth_pt, &b_towertruth_pt);
+         fChain->SetBranchAddress("towertruth_energy", &towertruth_energy, &b_towertruth_energy);
+         fChain->SetBranchAddress("towertruth_eta", &towertruth_eta, &b_towertruth_eta);
+         fChain->SetBranchAddress("towertruth_phi", &towertruth_phi, &b_towertruth_phi);
+         fChain->SetBranchAddress("towertruth_etEm", &towertruth_etEm, &b_towertruth_etEm);
+         fChain->SetBranchAddress("towertruth_etHad", &towertruth_etHad, &b_towertruth_etHad);
+         fChain->SetBranchAddress("towertruth_iEta", &towertruth_iEta, &b_towertruth_iEta);
+         fChain->SetBranchAddress("towertruth_iPhi", &towertruth_iPhi, &b_towertruth_iPhi);
+      }
    }
 };
 

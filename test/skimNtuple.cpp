@@ -18,7 +18,7 @@ int main (int argc, char** argv)
     {
       cerr << "missing input parameters : argc is: " << argc << endl ;
       cerr << "usage: " << argv[0]
-           << " inputFileNameList outputFileName nEvents isTau isQCD DEBUG" << endl ;
+           << " inputFileNameList outputFileName nEvents isTau isQCD gen3Dmatch DEBUG" << endl ;
       return 1;
     }
 
@@ -35,9 +35,13 @@ int main (int argc, char** argv)
     int isTau = atoi(argv[4]);
     int isQCD = atoi(argv[5]);
 
+    bool gen3Dmatch = false;
+    string opt6 (argv[6]);
+    if (opt6 == "1") gen3Dmatch = true;
+
     bool DEBUG = false;
-    string opt20 (argv[6]);
-    if (opt20 == "1") DEBUG = true;
+    string opt7 (argv[6]);
+    if (opt7 == "1") DEBUG = true;
 
     // ---------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------
@@ -58,7 +62,10 @@ int main (int argc, char** argv)
     if (nEvents != -1) nEntries = nEvents;
     cout << "** INFO: requested number of events to be skimmed is " << nEntries << endl;
 
+    // ---------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------
     // LOOP OVER EVENTS
+
     for (int iEvent = 0; iEvent < nEntries; iEvent++) {
         cout << "- reading entry " << iEvent << endl ;
         
@@ -72,20 +79,135 @@ int main (int argc, char** argv)
 
         if (DEBUG) cout << "** DEBUG: reading event " << theBigTree.event << endl;
 
+        if (theBigTree.cl3d_n == 0) {
+            cout << "** WARNING: no 3D clusters found in the endcaps for event " << theBigTree.event << " (entry " << iEvent << ") - SKIPPING IT" << endl;
+            continue;
+        }
+
         theSkimTree.m_run   = theBigTree.run;
         theSkimTree.m_event = theBigTree.event;
         theSkimTree.m_lumi  = theBigTree.lumi;
 
-        // LOOP OVER GENERATOR LEVEL INFORMATION
+        // ---------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------
+        // LOOPS OVER GENERATOR LEVEL INFORMATION
+
+        map<int,int> old2new_tau_idx_map; // map containing < old index of tau , new index of tau after selection >
+        map<int,int> TC_iTau_map; // map containing < TC index , tau index >
+        map<int,int> cl3d_iTau_map; // map containing < cl3d index , tau index >
+
         if(isTau){
             int n_gentaus = theBigTree.gentau_pt->size();
             if (DEBUG) cout << "    ** DEBUG: number of the gentaus in the event is " << n_gentaus << endl;
 
+            if (gen3Dmatch) {
+                // GENERATOR LEVEL - 3D CLUSTERS MATCHING
+                map<int,int> genIdx_iTau_map; // map containing < gen level particle index , gen level tau index from which it came >
+                int iTau = -1;
+                bool doubleG = false;
+                int i_pi_last = n_gentaus;
+                int i_k_last = n_gentaus;
+
+                // the entries of gen_pdgid are ordered as follows: [taus, daugthers_of_taus, daughters_of_daughters]
+                // the three cases are ordered as follows:
+                //              --> tau0, tau1, ... 
+                //              --> daughters_of_tau0, daughters_of_tau1, ...
+                //              --> the first daughter of each tau is always the tau neutrino, i.e. daughters_of_tau = nu_tau, ...
+                //              --> daughters of daughters follow the same scheme
+                for (int i_gen=n_gentaus; i_gen < int(theBigTree.gen_pdgid->size()); i_gen++) {
+                    // use the nu_tau as separator among daughters
+                    if (abs(theBigTree.gen_pdgid->at(i_gen)) == 16) {
+                        iTau += 1;
+                        genIdx_iTau_map[i_gen] = iTau;
+                    }
+                    // the gammas are daughters of daughters --> need to retrieve the pi0 where they came from
+                    else if (theBigTree.gen_pdgid->at(i_gen) == 22) {
+                        if (doubleG) { doubleG = false; continue; }
+                        for (int i_pi=i_pi_last; i_pi < i_gen; i_pi++) {
+                            if (abs(theBigTree.gen_pdgid->at(i_pi)) == 111) {
+                                genIdx_iTau_map[i_gen]   = genIdx_iTau_map[i_pi];
+                                genIdx_iTau_map[i_gen+1] = genIdx_iTau_map[i_pi];
+                                i_pi_last = i_pi + 1;
+                                doubleG = true;
+                                break;
+                            }
+                        }
+                    }
+                    // the K0L and K0S are daughters of daughters --> need to retrieve the K0 where they came from
+                    else if (abs(theBigTree.gen_pdgid->at(i_gen)) == 130 || abs(theBigTree.gen_pdgid->at(i_gen)) == 310) {
+                        for (int i_k=i_k_last; i_k < i_gen; i_k++) {
+                            if (abs(theBigTree.gen_pdgid->at(i_k)) == 311) {
+                                genIdx_iTau_map[i_gen] = genIdx_iTau_map[i_k];
+                                i_k_last = i_k + 1;
+                                break;
+                            }
+                        }
+                        genIdx_iTau_map[i_gen] = iTau; // if no K0 is found then associate to current iTau
+                    }
+                    // if the particle is neither a gamma nor a K0L/S we can just save the iTau index
+                    else { genIdx_iTau_map[i_gen] = iTau; }
+                }
+
+                // now we can match the TCs with the generator level particles
+                // map<int,int> TC_pdgID_map; // map containing < TC index , pdgID of the particle that fired the TC >
+                for (int i_tc=0; i_tc < theBigTree.tc_n; i_tc++) {
+                    if (theBigTree.tc_genparticle_index->at(i_tc) < 0) { continue; }
+                    TC_iTau_map[i_tc]  =  genIdx_iTau_map[theBigTree.tc_genparticle_index->at(i_tc)];
+                    // TC_pdgID_map[i_tc] =  theBigTree.gen_pdgid->at(theBigTree.tc_genparticle_index->at(i_tc));
+                } 
+
+                // now we can match the 3d clusters to the generator level particles
+                // map<int,vector<int>> cl3d_pdgID_map; // map containing < cl3d index , pdgID of the particles that fired the cl3d >
+                for (int i_cl3d=0; i_cl3d < int(theBigTree.cl3d_id->size()); i_cl3d++) {
+                    map<int,int> iTau_occurrence_map; // map containing < iTau , numebr of times it appears in the cluster >
+                    // map<int,int> pdgID_occurrence_map; // map containing < generator particle pdgID , numebr of times it appears in the cluster >
+                    int iTau_max_occurrence = 0;
+                    int iTau_majority_idx = -1;
+                    // vector<int> pdgID_occurrence_vec;
+                    int total_tcs_in_cl = 0;
+
+                    for (int i_tc=0; i_tc < int(theBigTree.tc_multicluster_id->size()); i_tc++) {
+                        if (theBigTree.tc_multicluster_id->at(i_tc) != theBigTree.cl3d_id->at(i_cl3d)) continue; // skip TCs not partaining to the cl3d considered
+
+                        iTau_occurrence_map[TC_iTau_map[i_tc]]   += 1;
+                        // pdgID_occurrence_map[TC_pdgID_map[i_tc]] += 1;
+
+                        if (iTau_occurrence_map[TC_iTau_map[i_tc]] > iTau_max_occurrence) {
+                            iTau_max_occurrence = iTau_occurrence_map[TC_iTau_map[i_tc]];
+                            iTau_majority_idx = TC_iTau_map[i_tc];
+                        }
+
+                        total_tcs_in_cl += 1;
+                    }
+
+                    // for (map<int,int>::iterator it = pdgID_occurrence_map.begin(); it != pdgID_occurrence_map.end(); it++) {
+                    //     // only report a particle to e in a cluster if it accounts for more then 10% of it --> otherwise could just be contamination
+                    //     if (float(it->second)/float(total_tcs_in_cl) < 0.05) continue;
+                    //     pdgID_occurrence_vec.push_back(it->first);
+                    // }
+
+                    cl3d_iTau_map[i_cl3d]  = iTau_majority_idx;
+                    // cl3d_pdgID_map[i_cl3d] = pdgID_occurrence_vec;
+
+                    if (float(iTau_max_occurrence)/float(total_tcs_in_cl) < 0.90) {
+                        cout << "    ** WARNING: setting 3D cluster - generator tau match with ONLY " << float(iTau_max_occurrence)/float(total_tcs_in_cl)*100 << "% MAJORITY" << endl;
+                        if (DEBUG) {
+                            for (map<int,int>::iterator it = iTau_occurrence_map.begin(); it != iTau_occurrence_map.end(); it++) { 
+                                cout << "           generator tau index=" << it->first << " ; number of occurrencies=" << it->second << endl;
+                            }
+                            cout << "       total number of TCs in the cluster=" << total_tcs_in_cl << endl;
+                        }
+                    }
+                }
+            }
+
+            // BRANCHES FILLING
+            int new_tau_idx = 0;
             for (int i_gentau = 0; i_gentau < n_gentaus; i_gentau++){
 
                 if ( abs(theBigTree.gentau_eta->at(i_gentau)) <= 1.5 || abs(theBigTree.gentau_eta->at(i_gentau)) >= 3.0 ) continue;
 
-                bool ishadronic = ( theBigTree.gentau_decayMode->at(i_gentau) == 0 || theBigTree.gentau_decayMode->at(i_gentau) == 1 || theBigTree.gentau_decayMode->at(i_gentau) == 10 || theBigTree.gentau_decayMode->at(i_gentau) == 11 );
+                bool ishadronic = ( theBigTree.gentau_decayMode->at(i_gentau) == 0 || theBigTree.gentau_decayMode->at(i_gentau) == 1 || theBigTree.gentau_decayMode->at(i_gentau) == 4 || theBigTree.gentau_decayMode->at(i_gentau) == 5 );
 
                 if(!ishadronic) continue;
 
@@ -108,13 +230,23 @@ int main (int argc, char** argv)
                 theSkimTree.m_gentau_products_mass.push_back(theBigTree.gentau_products_mass->at(i_gentau));
                 theSkimTree.m_gentau_products_id.push_back(theBigTree.gentau_products_id->at(i_gentau));
         
-                theSkimTree.m_gentau_decayMode.push_back(theBigTree.gentau_decayMode->at(i_gentau));
+                // here we correct for the idiotic and wrong tau decay mode naming convention used in the bigTrees!!
+                int DM = -1;
+                if (theBigTree.gentau_decayMode->at(i_gentau) == 0) DM = 0;
+                else if (theBigTree.gentau_decayMode->at(i_gentau) == 1) DM = 1;
+                else if (theBigTree.gentau_decayMode->at(i_gentau) == 4) DM = 10;
+                else if (theBigTree.gentau_decayMode->at(i_gentau) == 5) DM = 11;
+
+                theSkimTree.m_gentau_decayMode.push_back(DM);
                 theSkimTree.m_gentau_totNproducts.push_back(theBigTree.gentau_totNproducts->at(i_gentau));
                 theSkimTree.m_gentau_totNgamma.push_back(theBigTree.gentau_totNgamma->at(i_gentau));
                 theSkimTree.m_gentau_totNpiZero.push_back(theBigTree.gentau_totNpiZero->at(i_gentau));
                 theSkimTree.m_gentau_totNcharged.push_back(theBigTree.gentau_totNcharged->at(i_gentau));
 
-                theSkimTree.m_genpart_gen.push_back(theBigTree.genpart_gen->at(i_gentau));
+                if (gen3Dmatch) {
+                    old2new_tau_idx_map[i_gentau] = new_tau_idx;
+                    new_tau_idx += 1;
+                }
             }
 
             theSkimTree.m_gentau_n = theSkimTree.m_gentau_pt.size();
@@ -125,6 +257,10 @@ int main (int argc, char** argv)
             int n_genjets = theBigTree.genjet_pt->size();
             if (DEBUG) cout << "    ** DEBUG: number of the genjets in the event is " << n_genjets << endl;
 
+            // GENERATOR LEVEL - 3D CLUSTERS MATCHING
+
+
+            // BRANCHES FILLING
             for (int i_genjet=0; i_genjet < n_genjets; i_genjet++){
 
                 if ( abs(theBigTree.genjet_eta->at(i_genjet)) <= 1.5 || abs(theBigTree.genjet_eta->at(i_genjet)) >= 3.0 ) continue;
@@ -138,8 +274,6 @@ int main (int argc, char** argv)
                 theSkimTree.m_genjet_energy.push_back(theBigTree.genjet_energy->at(i_genjet));
                 genjet.SetPtEtaPhiE(theBigTree.genjet_pt->at(i_genjet), theBigTree.genjet_eta->at(i_genjet), theBigTree.genjet_phi->at(i_genjet), theBigTree.genjet_energy->at(i_genjet));
                 theSkimTree.m_genjet_mass.push_back(genjet.M());
-
-                theSkimTree.m_genpart_gen.push_back(theBigTree.genpart_gen->at(i_genjet)); 
             }
 
             theSkimTree.m_genjet_n = theSkimTree.m_genjet_pt.size();
@@ -152,39 +286,10 @@ int main (int argc, char** argv)
             continue;
         }
 
-
-        // SET GENPARTICLE FLAGS FOR THE 3D CLUSTERS
-        for (unsigned int i_cl3d=0; i_cl3d < theBigTree.cl3d_id->size(); i_cl3d++) {
-            map<int,int> idx_occurrence_map;
-            float max_occurrence = 0;
-            int majority_idx = -1;
-            float total_tcs_in_cl = 0;
-
-            for (unsigned int j=0; j < theBigTree.tc_multicluster_id->size(); j++) {
-                int gen_idx = theBigTree.tc_genparticle_index->at(j);
-
-                if (theBigTree.tc_multicluster_id->at(j) == theBigTree.cl3d_id->at(i_cl3d)) {
-                    idx_occurrence_map[gen_idx] += 1;
-                    total_tcs_in_cl += 1;
-                    
-                    if (idx_occurrence_map[gen_idx] > max_occurrence) {
-                        max_occurrence = idx_occurrence_map[gen_idx]; 
-                        majority_idx = gen_idx;
-                    }
-                }
-            }
-
-            theSkimTree.m_cl3d_genparticle_index.push_back(majority_idx);
-
-            if (max_occurrence/total_tcs_in_cl < 0.50) {
-                cout << "    ** WARNING: set genparticle index for 3D cluster with ONLY " << max_occurrence/total_tcs_in_cl*100 << "% MAJORITY" << endl;
-                for (map<int,int>::iterator it = idx_occurrence_map.begin(); it != idx_occurrence_map.end(); it++) { 
-                    cout << "           genparticle_index=" << it->first << " ; number of occurrencies=" << it->second << endl;
-                }
-            }
-        }
-
+        // ---------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------
         // LOOP OVER RECO TRIGGER CELLS
+
         theSkimTree.m_tc_n = theBigTree.tc_n;
         if (DEBUG) cout << "    ** DEBUG: number of the reco trigger cells in the event is " << theBigTree.tc_n << endl;
 
@@ -216,14 +321,24 @@ int main (int argc, char** argv)
             theSkimTree.m_tc_cluster_id.push_back(theBigTree.tc_cluster_id->at(i_tc));
             theSkimTree.m_tc_multicluster_id.push_back(theBigTree.tc_multicluster_id->at(i_tc));
             theSkimTree.m_tc_multicluster_pt.push_back(theBigTree.tc_multicluster_pt->at(i_tc));
-            theSkimTree.m_tc_genparticle_index.push_back(theBigTree.tc_genparticle_index->at(i_tc));
+
+            if (gen3Dmatch) {
+                if (TC_iTau_map.find(i_tc) == TC_iTau_map.end()) theSkimTree.m_tc_iTau.push_back(-1);
+                else if (old2new_tau_idx_map.find(TC_iTau_map.find(i_tc)->second) == old2new_tau_idx_map.end()) theSkimTree.m_tc_iTau.push_back(-1);
+                else theSkimTree.m_tc_iTau.push_back(old2new_tau_idx_map.find(TC_iTau_map.find(i_tc)->second)->second);
+            }
+
+            //theSkimTree.m_tc_pdgid.push_back(TC_pdgID_map[i_tc]);
         }
 
+        // ---------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------
         // LOOP OVER RECO 3D CLUSTERS
+
         theSkimTree.m_cl3d_n = theBigTree.cl3d_n;
         if (DEBUG) cout << "    ** DEBUG: number of the reco 3d clusters in the event is " << theBigTree.cl3d_n << endl;
 
-        for (int i_cl3d=0; i_cl3d < theBigTree.cl3d_n; i_cl3d++){    
+        for (int i_cl3d=0; i_cl3d < theBigTree.cl3d_n; i_cl3d++){
             //if ( abs(theBigTree.cl3d_eta->at(i_cl3d)) <= 1.5 || abs(theBigTree.cl3d_eta->at(i_cl3d)) >= 3.0 ) continue;
 
             theSkimTree.m_cl3d_id.push_back(theBigTree.cl3d_id->at(i_cl3d));
@@ -233,6 +348,7 @@ int main (int argc, char** argv)
             theSkimTree.m_cl3d_phi.push_back(theBigTree.cl3d_phi->at(i_cl3d));
             theSkimTree.m_cl3d_clusters_n.push_back(theBigTree.cl3d_clusters_n->at(i_cl3d));
             theSkimTree.m_cl3d_clusters_id.push_back(theBigTree.cl3d_clusters_id->at(i_cl3d));
+            theSkimTree.m_cl3d_layer_pt.push_back(theBigTree.cl3d_layer_pt->at(i_cl3d));
             theSkimTree.m_cl3d_showerlength.push_back(theBigTree.cl3d_showerlength->at(i_cl3d));
             theSkimTree.m_cl3d_coreshowerlength.push_back(theBigTree.cl3d_coreshowerlength->at(i_cl3d));
             theSkimTree.m_cl3d_firstlayer.push_back(theBigTree.cl3d_firstlayer->at(i_cl3d));
@@ -255,78 +371,32 @@ int main (int argc, char** argv)
             theSkimTree.m_cl3d_ntc90.push_back(theBigTree.cl3d_ntc90->at(i_cl3d));
             theSkimTree.m_cl3d_bdteg.push_back(theBigTree.cl3d_bdteg->at(i_cl3d));
             theSkimTree.m_cl3d_quality.push_back(theBigTree.cl3d_quality->at(i_cl3d));
+
+            if (gen3Dmatch) {
+                if (cl3d_iTau_map.find(i_cl3d) == cl3d_iTau_map.end()) theSkimTree.m_cl3d_iTau.push_back(-1);
+                else if (old2new_tau_idx_map.find(cl3d_iTau_map.find(i_cl3d)->second) == old2new_tau_idx_map.end()) theSkimTree.m_cl3d_iTau.push_back(-1);
+                else theSkimTree.m_cl3d_iTau.push_back(old2new_tau_idx_map.find(cl3d_iTau_map.find(i_cl3d)->second)->second);
+            }
+
+            //theSkimTree.m_cl3d_pdgid.push_back(cl3d_pdgID_map[i_cl3d]);
         }
 
-        // LOOP OVER CALO-TRUTH TRIGGER CELLS
-        theSkimTree.m_tctruth_n = theBigTree.tctruth_n;
-        if (DEBUG) cout << "    ** DEBUG: number of the calo-truth trigger cells in the event is " << theBigTree.tctruth_n << endl;
+        // ---------------------------------------------------------------------------------------------------------------------
+        // ---------------------------------------------------------------------------------------------------------------------
+        // LOOP OVER RECO TOWERS
 
-        for (int i_tc=0; i_tc < theBigTree.tctruth_n; i_tc++){
-            //if ( abs(theBigTree.tctruth_eta->at(i_tc)) <= 1.5 || abs(theBigTree.tctruth_eta->at(i_tc)) >= 3.0 ) continue;
+        theSkimTree.m_tower_n = theBigTree.tower_n;
+        if (DEBUG) cout << "    ** DEBUG: number of the reco towers in the event is " << theBigTree.cl3d_n << endl;
 
-            theSkimTree.m_tctruth_id.push_back(theBigTree.tctruth_id->at(i_tc));
-            theSkimTree.m_tctruth_subdet.push_back(theBigTree.tctruth_subdet->at(i_tc));
-            theSkimTree.m_tctruth_zside.push_back(theBigTree.tctruth_zside->at(i_tc));
-            theSkimTree.m_tctruth_layer.push_back(theBigTree.tctruth_layer->at(i_tc));
-            theSkimTree.m_tctruth_waferu.push_back(theBigTree.tctruth_waferu->at(i_tc));
-            theSkimTree.m_tctruth_waferv.push_back(theBigTree.tctruth_waferv->at(i_tc));
-            theSkimTree.m_tctruth_wafertype.push_back(theBigTree.tctruth_wafertype->at(i_tc));
-            theSkimTree.m_tctruth_panel_number.push_back(theBigTree.tctruth_panel_number->at(i_tc));
-            theSkimTree.m_tctruth_panel_sector.push_back(theBigTree.tctruth_panel_sector->at(i_tc));
-            theSkimTree.m_tctruth_cellu.push_back(theBigTree.tctruth_cellu->at(i_tc));
-            theSkimTree.m_tctruth_cellv.push_back(theBigTree.tctruth_cellv->at(i_tc));
-            theSkimTree.m_tctruth_data.push_back(theBigTree.tctruth_data->at(i_tc));
-            theSkimTree.m_tctruth_uncompressedCharge.push_back(theBigTree.tctruth_uncompressedCharge->at(i_tc));
-            theSkimTree.m_tctruth_compressedCharge.push_back(theBigTree.tctruth_compressedCharge->at(i_tc));
-            theSkimTree.m_tctruth_pt.push_back(theBigTree.tctruth_pt->at(i_tc));
-            theSkimTree.m_tctruth_mipPt.push_back(theBigTree.tctruth_mipPt->at(i_tc));
-            theSkimTree.m_tctruth_energy.push_back(theBigTree.tctruth_energy->at(i_tc));
-            theSkimTree.m_tctruth_eta.push_back(theBigTree.tctruth_eta->at(i_tc));
-            theSkimTree.m_tctruth_phi.push_back(theBigTree.tctruth_phi->at(i_tc));
-            theSkimTree.m_tctruth_x.push_back(theBigTree.tctruth_x->at(i_tc));
-            theSkimTree.m_tctruth_y.push_back(theBigTree.tctruth_y->at(i_tc));
-            theSkimTree.m_tctruth_z.push_back(theBigTree.tctruth_z->at(i_tc));
-            theSkimTree.m_tctruth_cluster_id.push_back(theBigTree.tctruth_cluster_id->at(i_tc));
-            theSkimTree.m_tctruth_multicluster_id.push_back(theBigTree.tctruth_multicluster_id->at(i_tc));
-            theSkimTree.m_tctruth_multicluster_pt.push_back(theBigTree.tctruth_multicluster_pt->at(i_tc));
-        }
-
-        // LOOP OVER RECO 3D CLUSTERS
-        theSkimTree.m_cl3dtruth_n = theBigTree.cl3dtruth_n;
-        if (DEBUG) cout << "    ** DEBUG: number of the calo-truth clusters in the event is " << theBigTree.cl3dtruth_n << endl;
-
-        for (int i_cl3d = 0; i_cl3d < theBigTree.cl3dtruth_n; i_cl3d++){    
-            //if ( abs(theBigTree.cl3dtruth_eta->at(i_cl3d)) <= 1.5 || abs(theBigTree.cl3dtruth_eta->at(i_cl3d)) >= 3.0 ) continue;
-
-            theSkimTree.m_cl3dtruth_id.push_back(theBigTree.cl3dtruth_id->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_pt.push_back(theBigTree.cl3dtruth_pt->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_energy.push_back(theBigTree.cl3dtruth_energy->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_eta.push_back(theBigTree.cl3dtruth_eta->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_phi.push_back(theBigTree.cl3dtruth_phi->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_clusters_n.push_back(theBigTree.cl3dtruth_clusters_n->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_clusters_id.push_back(theBigTree.cl3dtruth_clusters_id->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_showerlength.push_back(theBigTree.cl3dtruth_showerlength->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_coreshowerlength.push_back(theBigTree.cl3dtruth_coreshowerlength->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_firstlayer.push_back(theBigTree.cl3dtruth_firstlayer->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_maxlayer.push_back(theBigTree.cl3dtruth_maxlayer->at(i_cl3d));     
-            theSkimTree.m_cl3dtruth_seetot.push_back(theBigTree.cl3dtruth_seetot->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_seemax.push_back(theBigTree.cl3dtruth_seemax->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_spptot.push_back(theBigTree.cl3dtruth_spptot->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_sppmax.push_back(theBigTree.cl3dtruth_sppmax->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_szz.push_back(theBigTree.cl3dtruth_szz->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_srrtot.push_back(theBigTree.cl3dtruth_srrtot->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_srrmax.push_back(theBigTree.cl3dtruth_srrmax->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_srrmean.push_back(theBigTree.cl3dtruth_srrmean->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_emaxe.push_back(theBigTree.cl3dtruth_emaxe->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_hoe.push_back(theBigTree.cl3dtruth_hoe->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_meanz.push_back(theBigTree.cl3dtruth_meanz->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_layer10.push_back(theBigTree.cl3dtruth_layer10->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_layer50.push_back(theBigTree.cl3dtruth_layer50->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_layer90.push_back(theBigTree.cl3dtruth_layer90->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_ntc67.push_back(theBigTree.cl3dtruth_ntc67->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_ntc90.push_back(theBigTree.cl3dtruth_ntc90->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_bdteg.push_back(theBigTree.cl3dtruth_bdteg->at(i_cl3d));
-            theSkimTree.m_cl3dtruth_quality.push_back(theBigTree.cl3dtruth_quality->at(i_cl3d));
+        for (int i_tower=0; i_tower < theBigTree.tower_n; i_tower++){
+            theSkimTree.m_tower_pt.push_back(theBigTree.tower_pt->at(i_tower));
+            theSkimTree.m_tower_energy.push_back(theBigTree.tower_energy->at(i_tower));
+            theSkimTree.m_tower_eta.push_back(theBigTree.tower_eta->at(i_tower));
+            theSkimTree.m_tower_phi.push_back(theBigTree.tower_phi->at(i_tower));
+            theSkimTree.m_tower_etEm.push_back(theBigTree.tower_etEm->at(i_tower));
+            theSkimTree.m_tower_etHad.push_back(theBigTree.tower_etHad->at(i_tower));
+            theSkimTree.m_tower_iEta.push_back(theBigTree.tower_iEta->at(i_tower));
+            theSkimTree.m_tower_iPhi.push_back(theBigTree.tower_iPhi->at(i_tower));
         }
 
         theSkimTree.Fill();
