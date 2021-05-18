@@ -1,0 +1,3 @@
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValSingleTauFlatPt2To150/RelValSingleTau_noPU_caloTruth/210510_155053/0000/ntuple_1.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValSingleTauFlatPt2To150/RelValSingleTau_noPU_caloTruth/210510_155053/0000/ntuple_2.root
+root://polgrid4.in2p3.fr//dpm/in2p3.fr/home/cms/trivcat/store/user/jmotta/HGCAL/RelValSingleTauFlatPt2To150/RelValSingleTau_noPU_caloTruth/210510_155053/0000/ntuple_3.root
