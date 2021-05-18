@@ -17,3 +17,4 @@ L1GNN/
 JupyScripts/.ipynb_checkpoints
 obj/
 *.cpp_x*
+*.py~
