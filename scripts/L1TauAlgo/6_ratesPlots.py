@@ -30,7 +30,6 @@ if __name__ == "__main__" :
     # parse user's options
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
-    parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--WP', dest='WP', help='which working point do you want to use (90, 95, 99)?', default='99')
     # store parsed options
     args = parser.parse_args()
@@ -163,7 +162,6 @@ if __name__ == "__main__" :
         events_total[name] = np.unique(dfNu_dict[name].reset_index()['event']).shape[0]
 
         dfNu_dict[name] = dfNu_dict[name].query('cl3d_pubdt_pass{0}==True'.format(PUbdtWP))
-        dfNu_dict[name].set_index('event', inplace=True)
 
         group = dfNu_dict[name].groupby('event')
         dfNu_dict[name]['leading_cl3d_pt_c3'] = group['cl3d_pt_c3'].max()

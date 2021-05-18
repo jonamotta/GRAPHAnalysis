@@ -1,3 +1,10 @@
+# THIS DM SORTING HAS 3 TAU CATEGORIES AND 1 QCD CATEGORY
+#       - 1prong
+#       - 1prong+pi0
+#       - 3prong(+pi0)
+#       - QCD
+#       - residual PU tagged as QCD
+
 import os
 import pandas as pd
 import numpy as np
@@ -131,7 +138,7 @@ if __name__ == "__main__" :
     ns_dict = {}
     
     # features for BDT training
-    features = ['n_matched_cl3d', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_maxlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_layer10', 'cl3d_layer50', 'cl3d_layer90', 'cl3d_ntc67', 'cl3d_ntc90']
+    features = ['cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_maxlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_layer10', 'cl3d_layer50', 'cl3d_layer90', 'cl3d_ntc67', 'cl3d_ntc90']
 
     # name : [title, [min, max, step]
     features_dict = {'cl3d_pt_c3'            : [r'3D cluster $p_{T}$',[0.,500.,50]],
@@ -320,8 +327,8 @@ if __name__ == "__main__" :
                 for var in features_dict:
                     plt.figure(figsize=(8,8))
                     plt.hist(dfTrainingDM0_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label='1-prong', color='limegreen',  histtype='step', lw=2, alpha=0.8)
-                    plt.hist(dfTrainingDM1_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'1-prong + $\pi^{0}$\'s', color='blue',  histtype='step', lw=2, alpha=0.8)
-                    #plt.hist(dfTau_DM10_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label='3-prong', color='blue',  histtype='step', lw=2, alpha=0.8)
+                    plt.hist(dfTrainingDM1_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'1-prong + $\pi^{0}$', color='blue',  histtype='step', lw=2, alpha=0.8)
+                    plt.hist(dfTrainingDM10_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label='3-prong', color='red',  histtype='step', lw=2, alpha=0.8)
                     plt.hist(dfTrainingDM11_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'3-prong + $\pi^{0}$', color='fuchsia',  histtype='step', lw=2, alpha=0.8)
                     plt.hist(dfTrainingQCD_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='QCD background', color='cyan',  histtype='step', lw=2, alpha=0.8)
                     plt.legend(loc = 'upper right')
@@ -331,26 +338,6 @@ if __name__ == "__main__" :
                     plt.subplots_adjust(bottom=0.12)
                     plt.savefig(plotdir+'/'+var+'_'+name+'_DMs.pdf')
                     plt.close()
-
-                    # plt.figure(figsize=(8,8))
-                    # plt.hist(dfTau_DM0_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label='1-prong', color='limegreen',  histtype='step', lw=2, alpha=0.8)
-                    # plt.hist(dfTau_DM1_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'1-prong + $\pi^{0}$\'s', color='blue',  histtype='step', lw=2, alpha=0.8)
-                    # plt.hist(dfTau_DM2_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'2-prong (+ $\pi^{0}$)', color='red',  histtype='step', lw=2, alpha=0.8)
-                    # plt.hist(dfTau_DM3_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'3-prong (+ $\pi^{0}$)', color='fuchsia',  histtype='step', lw=2, alpha=0.8)
-                    # plt.hist(dfQCD_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='QCD background', color='cyan',  histtype='step', lw=2, alpha=0.8)
-                    # DM0_line = mlines.Line2D([], [], color='limegreen',markersize=15, label='1-prong',lw=2)
-                    # DM1_line = mlines.Line2D([], [], color='blue',markersize=15, label=r'1-prong + $\pi^{0}$',lw=2)
-                    # DM2_line = mlines.Line2D([], [], color='red',markersize=15, label=r'2-prong (+ $\pi^{0})$',lw=2)
-                    # DM3_line = mlines.Line2D([], [], color='fuchsia',markersize=15, label=r'3-prong (+ $\pi^{0})$',lw=2)
-                    # QCD_line = mlines.Line2D([], [], color='cyan', markersize=15, label='QCD background', lw=2)
-                    # plt.legend(loc = 'upper right',handles=[DM0_line,DM1_line,DM2_line,DM3_line,QCD_line])
-                    # plt.grid(linestyle=':')
-                    # plt.xlabel(features_dict[var][0])
-                    # plt.ylabel(r'Normalized events')
-                    # plt.subplots_adjust(bottom=0.12)
-                    # plt.savefig(plotdir+'/'+var+'_'+name+'_DMmerged.pdf')
-                    # plt.close()
-
 
                 ######################### FEATURE IMPORTANCE #########################
                 

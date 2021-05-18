@@ -248,20 +248,20 @@ if __name__ == "__main__" :
 
         ######################### SELECT EVENTS FOR TRAINING #########################
   
-        dfQCDTraining_dict[name] = dfTraining_dict[name].query('gentau_decayMode==-2')
+        dfQCDTraining_dict[name] = dfTraining_dict[name].query('gentau_decayMode==-2').copy(deep=True)
         dfQCDTraining_dict[name]['gentau_pid'] = dfQCDTraining_dict[name]['gentau_decayMode'] # create pid column to use as training target
         dfQCDTraining_dict[name]['gentau_pid'] = dfQCDTraining_dict[name]['gentau_pid'].replace([-2], 0) # tag pileup
 
-        dfQCDValidation_dict[name] = dfValidation_dict[name].query('gentau_decayMode==-2')
+        dfQCDValidation_dict[name] = dfValidation_dict[name].query('gentau_decayMode==-2').copy(deep=True)
         dfQCDValidation_dict[name]['gentau_pid'] = dfQCDValidation_dict[name]['gentau_decayMode'] # create pid column to use as training target
         dfQCDValidation_dict[name]['gentau_pid'] = dfQCDValidation_dict[name]['gentau_pid'].replace([-2], 0) # tag QCD as pileup
 
-        dfTraining_dict[name] = dfTraining_dict[name].query('gentau_decayMode>=-1')
+        dfTraining_dict[name] = dfTraining_dict[name].query('gentau_decayMode>=-1').copy(deep=True)
         dfTraining_dict[name]['gentau_pid'] = dfTraining_dict[name]['gentau_decayMode'] # create pid column to use as training target
         dfTraining_dict[name]['gentau_pid'] = dfTraining_dict[name]['gentau_pid'].replace([0,1,5,6,10,11], 1) # tag signal
         dfTraining_dict[name]['gentau_pid'] = dfTraining_dict[name]['gentau_pid'].replace([-1], 0) # tag pileup
 
-        dfValidation_dict[name] = dfValidation_dict[name].query('gentau_decayMode>=-1')
+        dfValidation_dict[name] = dfValidation_dict[name].query('gentau_decayMode>=-1').copy(deep=True)
         dfValidation_dict[name]['gentau_pid'] = dfValidation_dict[name]['gentau_decayMode'] # create pid column to use as training target
         dfValidation_dict[name]['gentau_pid'] = dfValidation_dict[name]['gentau_pid'].replace([0,1,5,6,10,11], 1) # tag signal
         dfValidation_dict[name]['gentau_pid'] = dfValidation_dict[name]['gentau_pid'].replace([-1], 0) # tag pileup
@@ -336,9 +336,9 @@ if __name__ == "__main__" :
         QCD90 = QCDtot.query('cl3d_pubdt_passWP90==True')
 
         print('\n**INFO: QCD cluster passing the PU rejection:')
-        print('  -- number of QCD events passing WP99: {0}%'.format(QCD99['cl3d_pubdt_passWP99'].count()/QCDtot['cl3d_pubdt_passWP99'].count()*100))
-        print('  -- number of QCD events passing WP95: {0}%'.format(QCD95['cl3d_pubdt_passWP95'].count()/QCDtot['cl3d_pubdt_passWP95'].count()*100))
-        print('  -- number of QCD events passing WP90: {0}%'.format(QCD90['cl3d_pubdt_passWP90'].count()/QCDtot['cl3d_pubdt_passWP90'].count()*100))
+        print('  -- number of QCD events passing WP99: {0}%'.format(round(float(QCD99['cl3d_pubdt_passWP99'].count())/float(QCDtot['cl3d_pubdt_passWP99'].count())*100,2)))
+        print('  -- number of QCD events passing WP95: {0}%'.format(round(float(QCD95['cl3d_pubdt_passWP95'].count())/float(QCDtot['cl3d_pubdt_passWP95'].count())*100,2)))
+        print('  -- number of QCD events passing WP90: {0}%'.format(round(float(QCD90['cl3d_pubdt_passWP90'].count())/float(QCDtot['cl3d_pubdt_passWP90'].count())*100,2)))
 
 
         ######################### SAVE FILES #########################
@@ -397,7 +397,7 @@ if args.doPlots:
         if not name in args.FE: continue # skip the front-end options that we do not want to do
         
         ######################### PLOT FEATURES #########################        
-        print('\n**INFO: plotting features')
+        print('\n** INFO: plotting features')
 
         dfNu = dfTraining_dict[name].query('gentau_pid==0')
         dfTau = dfTraining_dict[name].query('gentau_pid==1')

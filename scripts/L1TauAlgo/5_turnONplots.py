@@ -31,7 +31,6 @@ if __name__ == "__main__" :
     # parse user's options
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
-    parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--WP', dest='WP', help='which working point do you want to use (90, 95, 99)?', default='99')
     # store parsed options
     args = parser.parse_args()
@@ -58,7 +57,7 @@ if __name__ == "__main__" :
     # create needed folders
     indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/DMsorted'
     outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/mapping'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/turnONs_{0}'.format(PUbdtWP)
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/turnONs_PU{0}'.format(PUbdtWP)
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir)
 
     # define the input and output dictionaries for the handling of different datasets
