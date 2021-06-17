@@ -40,7 +40,7 @@ int main (int argc, char** argv)
     if (opt6 == "1") gen3Dmatch = true;
 
     bool DEBUG = false;
-    string opt7 (argv[6]);
+    string opt7 (argv[7]);
     if (opt7 == "1") DEBUG = true;
 
     // ---------------------------------------------------------------------------------------------
@@ -151,8 +151,9 @@ int main (int argc, char** argv)
                 // now we can match the TCs with the generator level particles
                 // map<int,int> TC_pdgID_map; // map containing < TC index , pdgID of the particle that fired the TC >
                 for (int i_tc=0; i_tc < theBigTree.tc_n; i_tc++) {
-                    if (theBigTree.tc_genparticle_index->at(i_tc) < 0) { continue; }
-                    TC_iTau_map[i_tc]  =  genIdx_iTau_map[theBigTree.tc_genparticle_index->at(i_tc)];
+                    if (theBigTree.tc_genparticle_index->at(i_tc) < 0) TC_iTau_map[i_tc] =  -1;
+                    else TC_iTau_map[i_tc] =  genIdx_iTau_map[theBigTree.tc_genparticle_index->at(i_tc)];
+
                     // TC_pdgID_map[i_tc] =  theBigTree.gen_pdgid->at(theBigTree.tc_genparticle_index->at(i_tc));
                 } 
 
@@ -169,7 +170,7 @@ int main (int argc, char** argv)
                     for (int i_tc=0; i_tc < int(theBigTree.tc_multicluster_id->size()); i_tc++) {
                         if (theBigTree.tc_multicluster_id->at(i_tc) != theBigTree.cl3d_id->at(i_cl3d)) continue; // skip TCs not partaining to the cl3d considered
 
-                        iTau_occurrence_map[TC_iTau_map[i_tc]]   += 1;
+                        iTau_occurrence_map[TC_iTau_map[i_tc]] += 1;
                         // pdgID_occurrence_map[TC_pdgID_map[i_tc]] += 1;
 
                         if (iTau_occurrence_map[TC_iTau_map[i_tc]] > iTau_max_occurrence) {
@@ -204,7 +205,7 @@ int main (int argc, char** argv)
             // BRANCHES FILLING
             int new_tau_idx = 0;
             for (int i_gentau = 0; i_gentau < n_gentaus; i_gentau++){
-
+ 
                 if ( abs(theBigTree.gentau_eta->at(i_gentau)) <= 1.5 || abs(theBigTree.gentau_eta->at(i_gentau)) >= 3.0 ) continue;
 
                 bool ishadronic = ( theBigTree.gentau_decayMode->at(i_gentau) == 0 || theBigTree.gentau_decayMode->at(i_gentau) == 1 || theBigTree.gentau_decayMode->at(i_gentau) == 4 || theBigTree.gentau_decayMode->at(i_gentau) == 5 );
@@ -373,9 +374,15 @@ int main (int argc, char** argv)
             theSkimTree.m_cl3d_quality.push_back(theBigTree.cl3d_quality->at(i_cl3d));
 
             if (gen3Dmatch) {
-                if (cl3d_iTau_map.find(i_cl3d) == cl3d_iTau_map.end()) theSkimTree.m_cl3d_iTau.push_back(-1);
-                else if (old2new_tau_idx_map.find(cl3d_iTau_map.find(i_cl3d)->second) == old2new_tau_idx_map.end()) theSkimTree.m_cl3d_iTau.push_back(-1);
-                else theSkimTree.m_cl3d_iTau.push_back(old2new_tau_idx_map.find(cl3d_iTau_map.find(i_cl3d)->second)->second);
+                if (cl3d_iTau_map.find(i_cl3d) == cl3d_iTau_map.end()){ 
+                    theSkimTree.m_cl3d_iTau.push_back(-1);
+                }
+                else if (old2new_tau_idx_map.find(cl3d_iTau_map.find(i_cl3d)->second) == old2new_tau_idx_map.end()) {
+                    theSkimTree.m_cl3d_iTau.push_back(-1);
+                }
+                else {
+                    theSkimTree.m_cl3d_iTau.push_back(old2new_tau_idx_map.find(cl3d_iTau_map.find(i_cl3d)->second)->second);
+                }
             }
 
             //theSkimTree.m_cl3d_pdgid.push_back(cl3d_pdgID_map[i_cl3d]);
