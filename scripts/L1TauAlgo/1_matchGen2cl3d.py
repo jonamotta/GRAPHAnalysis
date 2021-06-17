@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import root_pandas
 import argparse
-
+from sklearn.model_selection import train_test_split
 
 def deltar( df, isTau ):
     if isTau:
@@ -30,7 +30,12 @@ def taumatching( df_cl3d, df_gen, deta, dphi, dR ):
     df_joined['deltar_cl3d_gentau'] = deltar(df_joined, 1)
     df_joined['geom_match'] = df_joined['deltar_cl3d_gentau'] < dR
     # df_joined['geom_match']  = (df_joined['deta_cl3d_gentau'] < deta/2) & (df_joined['dphi_cl3d_gentau'] < dphi/2)
+    df_joined['n_matched_cl3d'] = 0
+    df_joined['cl3d_isbestmatch'] = False
+    
+    # prepare for the best matches insertion
     df_joined.query('geom_match==True', inplace=True)
+    df_joined.reset_index(inplace=True)
 
     # create a temporary dataframe containing the information of the sole best matches between tau and clusters
     df_best_matches = pd.DataFrame()
@@ -38,12 +43,6 @@ def taumatching( df_cl3d, df_gen, deta, dphi, dR ):
     df_best_matches['n_matched_cl3d'] = df_joined.groupby(['event', 'gentau_vis_pt'], sort=False)['cl3d_pt'].size()
     df_best_matches.sort_values('gentau_vis_pt',inplace=True)
     df_best_matches.reset_index(inplace=True)
-
-    # prepare for the best matches insertion
-    df_joined.drop_duplicates(['cl3d_pt', 'cl3d_eta', 'cl3d_phi'], keep='last',inplace=True)
-    df_joined['n_matched_cl3d'] = 0
-    df_joined['cl3d_isbestmatch'] = False
-    df_joined.reset_index(inplace=True)
 
     # insert the information of the gen taus in the rows of the best matches
     for i in df_joined.index.values:
@@ -225,7 +224,7 @@ if __name__ == "__main__" :
  
     if args.doQCD:
         inFileQCD_dict = {
-            'threshold'    : indir+'/SKIM_QCD_PU200/mergedOutput.root',
+            'threshold'    : indir+'/SKIM_RelValQCD_PU200/mergedOutput.root',
             'supertrigger' : indir+'/',
             'bestchoice'   : indir+'/',
             'bestcoarse'   : indir+'/',
@@ -363,7 +362,7 @@ if __name__ == "__main__" :
 
             print('** INFO: matching gentaus for ' + inFileSingleTau_dict[name])
             dfSingleTau = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
-            dfSingleTau['dataset'] = 1 # tag the dataset it came from
+            dfSingleTau['dataset'] = 2 # tag the dataset it came from
 
             print('** INFO: saving file ' + outFileSingleTau_dict[name])
             store_tau = pd.HDFStore(outFileSingleTau_dict[name], mode='w')
@@ -384,7 +383,7 @@ if __name__ == "__main__" :
             dfNu['gentau_decayMode'] = -1 # tag as PU
             dfNu['geom_match'] = False
             dfNu['cl3d_isbestmatch'] = False
-            dfNu['dataset'] = 2 # tag the dataset it came from
+            dfNu['dataset'] = 4 # tag the dataset it came from
 
             print('** INFO: saving file ' + outFileNu_dict[name])
             store_nu = pd.HDFStore(outFileNu_dict[name], mode='w')
@@ -429,24 +428,20 @@ if __name__ == "__main__" :
         if args.doTrainValid:
             print('\n** INFO: creating dataframes for Training/Validation')
             print('** INFO: RelValTenTau Training/Validation')
-            dfTenTauTraining = dfTenTau.sample(frac=0.7,random_state=123)
-            dfTenTauValidation = dfTenTau.drop(dfTenTauTraining.index)
+            dfTenTauTraining, dfTenTauValidation = train_test_split(dfTenTau, test_size=0.3)
 
             print('** INFO: RelValSingleTau Training/Validation')
-            dfSingleTauTraining = dfSingleTau.sample(frac=0.7,random_state=123)
-            dfSingleTauValidation = dfSingleTau.drop(dfSingleTauTraining.index)
+            dfSingleTauTraining, dfSingleTauValidation = train_test_split(dfSingleTau, test_size=0.3)
 
             print('** INFO: HH Training/Validation')
-            dfHHTraining = dfHH.sample(frac=0.7,random_state=123)
-            dfHHValidation = dfHH.drop(dfHHTraining.index) 
+            dfHHTraining, dfHHValidation = train_test_split(dfHH, test_size=0.3)
 
             print('** INFO: QCD Training/Validation')
-            dfQCDTraining = dfQCD.sample(frac=0.7,random_state=123)
-            dfQCDValidation = dfQCD.drop(dfQCDTraining.index)
+            dfQCDTraining, dfQCDValidation = train_test_split(dfQCD, test_size=0.3)
 
             print('** INFO: RelValNu Training/Validation')
-            dfNuTraining = dfNu.sample(frac=0.7,random_state=123)
-            dfNuValidation = dfNu.drop(dfNuTraining.index)
+            dfNuTraining, dfNuValidation = train_test_split(dfNu, test_size=0.3)
+
             dfNuTraining.set_index('event', inplace=True)
             dfNuValidation.set_index('event', inplace=True)
 
@@ -454,8 +449,8 @@ if __name__ == "__main__" :
             print('** INFO: merging Training/Validation')
             dfMergedTraining = pd.concat([dfTenTauTraining,dfSingleTauTraining,dfHHTraining,dfNuTraining,dfQCDTraining],sort=False)
             dfMergedValidation = pd.concat([dfTenTauValidation,dfSingleTauValidation,dfHHValidation,dfNuValidation,dfQCDValidation],sort=False)
-            dfMergedTraining.fillna(0.0, inplace=True)
-            dfMergedValidation.fillna(0.0, inplace=True)
+            dfMergedTraining.fillna(-99.9, inplace=True)
+            dfMergedValidation.fillna(-99.9, inplace=True)
 
             print('** INFO: saving file ' + outFileTraining_dict[name])
             store_tr = pd.HDFStore(outFileTraining_dict[name], mode='w')

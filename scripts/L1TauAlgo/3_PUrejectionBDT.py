@@ -174,6 +174,7 @@ if __name__ == "__main__" :
     dfValidation_dict = {}
 
     # features for BDT training
+    #features = ['cl3d_pt_c1', 'cl3d_pt_c2', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength','cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_maxlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_layer10', 'cl3d_layer50', 'cl3d_layer90', 'cl3d_ntc67', 'cl3d_ntc90']
     features = ['cl3d_abseta', 'cl3d_showerlength','cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_maxlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_layer10', 'cl3d_layer50', 'cl3d_layer90', 'cl3d_ntc67', 'cl3d_ntc90']
     output = 'gentau_pid'
 
@@ -374,7 +375,10 @@ if args.doPlots:
     print('---------------------------------------------------------------------------------------')
     print('** INFO: starting plotting')
 
-    features_dict = {'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,10]], 
+    features_dict = {#'cl3d_pt_c1'            : [r'cl3d_pt_c1',[0.,200.,40]], 
+                     #'cl3d_pt_c2'            : [r'cl3d_pt_c2',[0.,200.,40]],
+                     #'cl3d_pt_c3'            : [r'cl3d_pt_c3',[0.,200.,40]],
+                     'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,10]], 
                      'cl3d_showerlength'     : [r'3D cluster shower length',[0.,35.,15]], 
                      'cl3d_coreshowerlength' : [r'Core shower length ',[0.,35.,15]], 
                      'cl3d_firstlayer'       : [r'3D cluster first layer',[0.,20.,20]], 
