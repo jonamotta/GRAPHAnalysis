@@ -12,8 +12,8 @@ SKIM_*/
 *MY_*
 *.DS*
 *index.php*
-L1BDT/
-L1GNN/
+L1BDT*/
+L1GNN*/
 JupyScripts/.ipynb_checkpoints
 obj/
 *.cpp_x*
