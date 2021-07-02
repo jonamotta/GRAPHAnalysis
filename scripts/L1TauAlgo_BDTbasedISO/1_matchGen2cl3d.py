@@ -486,9 +486,9 @@ if __name__ == "__main__" :
             dfQCD_towers.sort_values('event', inplace=True)
 
             if args.testRun:
-                df_cl3d.query('event<88010', inplace=True)
-                df_genjet.query('event<88010', inplace=True)
-                dfQCD_towers.query('event<88100', inplace=True)
+                df_cl3d.query('event<40010', inplace=True)
+                df_genjet.query('event<40010', inplace=True)
+                dfQCD_towers.query('event<40100', inplace=True)
 
             print('** INFO: matching gentaus for ' + inFileQCD_dict[name])
             dfQCD = jetmatching(df_cl3d, df_genjet, deta_matching, dphi_matching, dr_matching)
@@ -562,14 +562,16 @@ if __name__ == "__main__" :
             dfMergedValidation.fillna(0.0, inplace=True)
 
             # BIN PT AND ETA OF THE GENTAUS
+            ptcut = 1
+            etamin = 1.6
             pt_binwidth = 3
             eta_binwidth = 0.1
-            dfMergedTraining[name]['gentau_vis_abseta'] = np.abs(dfMergedTraining[name]['gentau_vis_eta'])
-            dfMergedValidation[name]['gentau_vis_abseta'] = np.abs(dfMergedValidation[name]['gentau_vis_eta'])
-            dfMergedTraining[name]['gentau_bin_eta'] = ((dfMergedTraining[name]['gentau_vis_abseta'] - etamin)/eta_binwidth).astype('int32')
-            dfMergedTraining[name]['gentau_bin_pt']  = ((dfMergedTraining[name]['gentau_vis_pt'] - ptcut)/pt_binwidth).astype('int32')
-            dfMergedValidation[name]['gentau_bin_eta'] = ((dfMergedValidation[name]['gentau_vis_abseta'] - etamin)/eta_binwidth).astype('int32')
-            dfMergedValidation[name]['gentau_bin_pt']  = ((dfMergedValidation[name]['gentau_vis_pt'] - ptcut)/pt_binwidth).astype('int32')
+            dfMergedTraining['gentau_vis_abseta'] = np.abs(dfMergedTraining['gentau_vis_eta'])
+            dfMergedValidation['gentau_vis_abseta'] = np.abs(dfMergedValidation['gentau_vis_eta'])
+            dfMergedTraining['gentau_bin_eta'] = ((dfMergedTraining['gentau_vis_abseta'] - etamin)/eta_binwidth).astype('int32')
+            dfMergedTraining['gentau_bin_pt']  = ((dfMergedTraining['gentau_vis_pt'] - ptcut)/pt_binwidth).astype('int32')
+            dfMergedValidation['gentau_bin_eta'] = ((dfMergedValidation['gentau_vis_abseta'] - etamin)/eta_binwidth).astype('int32')
+            dfMergedValidation['gentau_bin_pt']  = ((dfMergedValidation['gentau_vis_pt'] - ptcut)/pt_binwidth).astype('int32')
 
             # SAVE
             print('** INFO: saving file ' + outFileTraining_dict[name])

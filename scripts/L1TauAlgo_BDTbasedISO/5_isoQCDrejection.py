@@ -9,6 +9,8 @@ from sklearn import metrics
 from sklearn.model_selection import train_test_split
 import root_pandas
 import matplotlib.lines as mlines
+from scipy.optimize import curve_fit
+from scipy.special import btdtri # beta quantile function
 import argparse
 
 
@@ -28,14 +30,18 @@ def train_xgb(dfTrain, features, output, hyperparams, test_fraction=0.3):
 
     return booster, fpr_train, tpr_train, threshold_train, fpr_test, tpr_test, threshold_test, auroc_test, auroc_train
 
-def efficiency(group, threshold):
+def efficiency(group, threshold, ISOWP):
     tot = group.shape[0]
-    sel = group[(group.cl3d_pt_c3 > threshold)].shape[0]
+    if   ISOWP == 01: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP01 == True)].shape[0]
+    elif ISOWP == 05: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP05 == True)].shape[0]
+    else:            sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True)].shape[0]
     return float(sel)/float(tot)
 
-def efficiency_err(group, threshold, upper=False):
+def efficiency_err(group, threshold, ISOWP, upper=False):
     tot = group.shape[0]
-    sel = group[(group.cl3d_pt_c3 > threshold)].shape[0]
+    if   ISOWP == 01: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP01 == True)].shape[0]
+    elif ISOWP == 05: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP05 == True)].shape[0]
+    else:            sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True)].shape[0]
     
     # clopper pearson errors --> ppf gives the boundary of the cinfidence interval, therefore for plotting we have to subtract the value of the central value float(sel)/float(tot)!!
     alpha = (1 - 0.9) / 2
@@ -77,6 +83,7 @@ if __name__ == "__main__" :
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     parser.add_argument('--PUWP', dest='PUWP', help='which PU working point do you want to use (90, 95, 99)?', default='90')
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
+    parser.add_argument('--doEfficiency', dest='doEfficiency', help='do you want calculate the efficiencies?', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
@@ -551,164 +558,203 @@ if args.doPlots:
     print('---------------------------------------------------------------------------------------')
 
 
+if args.doEfficiency:
+    print('\n** INFO: calculating efficiency')
+    
+    matplotlib.rcParams.update({'font.size': 20})
+    
+    # efficiencies related dictionaries
+    dfTau_dict = {}
+    dfTauDM0_dict = {}
+    dfTauDM1_dict = {}
+    dfTauDM2_dict = {}
+    
+    effVSpt_Tau_dict = {}
+    effVSpt_TauDM0_dict = {}
+    effVSpt_TauDM1_dict = {}
+    effVSpt_TauDM2_dict = {}
 
-'''
-###########
+    effVSeta_Tau_dict = {}
+    effVSeta_TauDM0_dict = {}
+    effVSeta_TauDM1_dict = {}
+    effVSeta_TauDM2_dict = {}
 
-# EFFICIENCIES
+    for name in feNames_dict:
+        if not name in args.FE: continue # skip the front-end options that we do not want to do
 
-matplotlib.rcParams.update({'font.size': 22})
+        dfTau_dict[name] = pd.concat([dfTraining_dict[name],dfValidation_dict[name]], sort=False)
+        # fill all the DM dataframes
+        dfTauDM0_dict[name] = dfTau_dict[name].query('gentau_decayMode==0').copy(deep=True)
+        dfTauDM1_dict[name] = dfTau_dict[name].query('gentau_decayMode==1').copy(deep=True)
+        dfTauDM2_dict[name] = dfTau_dict[name].query('gentau_decayMode==10 or gentau_decayMode==11').copy(deep=True)
 
-# Cuts for plotting
+        effVSpt_Tau_dict[name] = {}
+        effVSpt_TauDM0_dict[name] = {}
+        effVSpt_TauDM1_dict[name] = {}
+        effVSpt_TauDM2_dict[name] = {}
 
-for name in dfTau_dict:
+        effVSpt_Tau_dict[name] = dfTau_dict[name].groupby('gentau_bin_pt').mean() # this means are the x bins for the plotting
+        effVSpt_TauDM0_dict[name] = dfTauDM0_dict[name].groupby('gentau_bin_pt').mean()
+        effVSpt_TauDM1_dict[name] = dfTauDM1_dict[name].groupby('gentau_bin_pt').mean()
+        effVSpt_TauDM2_dict[name] = dfTauDM2_dict[name].groupby('gentau_bin_pt').mean()
 
-  dfTau_dict[name]['gentau_vis_abseta'] = np.abs(dfTau_dict[name]['gentau_vis_eta'])
+        effVSeta_Tau_dict[name] = {}
+        effVSeta_TauDM0_dict[name] = {}
+        effVSeta_TauDM1_dict[name] = {}
+        effVSeta_TauDM2_dict[name] = {}
 
-  sel = dfTau_dict[name]['gentau_vis_pt'] > 20
-  dfTau_dict[name] = dfTau_dict[name][sel]
-  
-  sel = np.abs(dfTau_dict[name]['gentau_vis_eta']) > 1.6
-  dfTau_dict[name] = dfTau_dict[name][sel]
-  
-  sel = np.abs(dfTau_dict[name]['gentau_vis_eta']) < 2.9
-  dfTau_dict[name] = dfTau_dict[name][sel]
-  
-  sel = dfTau_dict[name]['cl3d_isbestmatch'] == True
-  dfTau_dict[name] = dfTau_dict[name][sel]
+        effVSeta_Tau_dict[name] = dfTau_dict[name].groupby('gentau_bin_eta').mean() # this means are the x bins for the plotting
+        effVSeta_TauDM0_dict[name] = dfTauDM0_dict[name].groupby('gentau_bin_eta').mean()
+        effVSeta_TauDM1_dict[name] = dfTauDM1_dict[name].groupby('gentau_bin_eta').mean()
+        effVSeta_TauDM2_dict[name] = dfTauDM2_dict[name].groupby('gentau_bin_eta').mean()
 
-  sel = dfTau_dict[name]['cl3d_pt_c3'] > 4
-  dfTau_dict[name] = dfTau_dict[name][sel]
+        for ISOWP in [01,05,10]:
+            for threshold in [0,30]: # consider the no threshold and the 30GeV offline threshold cases
+                # calculate efficiency for the TAU datasets --> calculated per bin that will be plotted
+                #                                           --> every efficiency_at{threshold} contains the value of the efficiency when applying the specific threshold 
+                effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTau_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency(x, threshold, ISOWP)) # --> the output of this will be a series with idx=bin and entry=efficiency
+                effVSpt_TauDM0_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM0_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency(x, threshold, ISOWP))
+                effVSpt_TauDM1_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM1_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency(x, threshold, ISOWP))
+                effVSpt_TauDM2_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM2_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency(x, threshold, ISOWP))
 
-ptmin = 20
-etamin = 1.6
+                effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTau_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
+                effVSpt_TauDM0_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM0_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
+                effVSpt_TauDM1_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM1_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
+                effVSpt_TauDM2_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM2_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
 
-for name in dfTau_dict:
-
-  dfTau_dict[name]['gentau_bin_eta'] = ((dfTau_dict[name]['gentau_vis_abseta'] - etamin)/0.1).astype('int32')
-  dfTau_dict[name]['gentau_bin_pt']  = ((dfTau_dict[name]['gentau_vis_pt'] - ptmin)/5).astype('int32')
-
-# EFFICIENCY VS ETA
-
-efficiencies_vs_eta = {}
-
-for name in dfTau_dict:
-
-  efficiencies_vs_eta[name] = dfTau_dict[name].groupby('gentau_bin_eta').mean()
-
-for name in dfTau_dict:
-
-  efficiencies_vs_eta[name]['efficiency01'] = dfTau_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency(x, bdtWP01_dict[name]))
-  efficiencies_vs_eta[name]['efficiency05'] = dfTau_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency(x, bdtWP05_dict[name]))
-  efficiencies_vs_eta[name]['efficiency10'] = dfTau_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency(x, bdtWP10_dict[name]))
-
-plt.figure(figsize=(8,8))
-
-for name in dfTau_dict:
-
-  df = efficiencies_vs_eta[name]
-  plt.plot(df.gentau_vis_abseta, df.efficiency01, label=legends_dict[name], color=colors_dict[name],lw=2)
-
-plt.ylim(0.9, 1.01)
-plt.xlabel(r'$|\eta^{gen}|$')
-plt.ylabel('Efficiency')
-plt.grid()
-plt.cmstext("CMS"," Phase-2 Simulation")
-plt.lumitext("PU=200","HGCAL")
-plt.savefig(plotdir+'pubdt_eff01_eta_TDR.png')
-plt.savefig(plotdir+'pubdt_eff01_eta_TDR.pdf')
-
-
-plt.figure(figsize=(15,10))
-
-for name in dfTau_dict:
-
-  df = efficiencies_vs_eta[name]
-  plt.plot(df.gentau_vis_abseta, df.efficiency05, label=legends_dict[name], color=colors_dict[name],lw=2)
-
-plt.ylim(0.8, 1.01)
-plt.legend(loc = 'lower left', fontsize=16)
-plt.xlabel(r'$|\eta|$')
-plt.ylabel('Efficiency')
-plt.grid()
-plt.savefig(plotdir+'pubdt_eff05_eta.png')
-plt.savefig(plotdir+'pubdt_eff05_eta.pdf')
-
-plt.figure(figsize=(15,10))
-
-for name in dfTau_dict:
-
-  df = efficiencies_vs_eta[name]
-  plt.plot(df.gentau_vis_abseta, df.efficiency10, label=legends_dict[name], color=colors_dict[name],lw=2)
-
-plt.ylim(0.7, 1.01)
-plt.legend(loc = 'lower left', fontsize=16)
-plt.xlabel(r'$|\eta|$')
-plt.ylabel('Efficiency')
-plt.grid()
-plt.savefig(plotdir+'pubdt_eff10_eta.png')
-plt.savefig(plotdir+'pubdt_eff10_eta.pdf')
+                effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTau_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
+                effVSpt_TauDM0_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM0_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
+                effVSpt_TauDM1_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM1_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
+                effVSpt_TauDM2_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM2_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
 
 
-# EFFICIENCY VS PT
+                effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTau_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency(x, threshold, ISOWP)) # --> the output of this will be a series with idx=bin and entry=efficiency
+                effVSeta_TauDM0_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM0_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency(x, threshold, ISOWP))
+                effVSeta_TauDM1_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM1_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency(x, threshold, ISOWP))
+                effVSeta_TauDM2_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM2_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency(x, threshold, ISOWP))
 
-efficiencies_vs_pt = {}
+                effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTau_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
+                effVSeta_TauDM0_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM0_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
+                effVSeta_TauDM1_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM1_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
+                effVSeta_TauDM2_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM2_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=False))
 
-for name in dfTau_dict:
-
-  efficiencies_vs_pt[name] = dfTau_dict[name].groupby('gentau_bin_pt').mean()
-
-for name in dfTau_dict:
-
-  efficiencies_vs_pt[name]['efficiency01'] = dfTau_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency(x, bdtWP01_dict[name]))
-  efficiencies_vs_pt[name]['efficiency05'] = dfTau_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency(x, bdtWP05_dict[name]))
-  efficiencies_vs_pt[name]['efficiency10'] = dfTau_dict[name].groupby('gentau_bin_pt').apply(lambda x : efficiency(x, bdtWP10_dict[name]))
-
-plt.figure(figsize=(8,8))
-
-for name in dfTau_dict:
-
-  df = efficiencies_vs_pt[name]
-  plt.plot(df.gentau_vis_pt, df.efficiency01, label=legends_dict[name], color=colors_dict[name],lw=2)
-
-plt.ylim(0.9, 1.01)
-plt.legend(loc = 'lower right', fontsize=16)
-plt.xlabel(r'$p_{T}^{gen}\,[GeV]$')
-plt.ylabel('Efficiency')
-plt.grid()
-plt.cmstext("CMS"," Phase-2 Simulation")
-plt.lumitext("PU=200","HGCAL")
-plt.savefig(plotdir+'pubdt_eff01_pt_TDR.png')
-plt.savefig(plotdir+'pubdt_eff01_pt_TDR.pdf')
+                effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTau_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
+                effVSeta_TauDM0_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM0_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
+                effVSeta_TauDM1_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM1_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
+                effVSeta_TauDM2_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)] = dfTauDM2_dict[name].groupby('gentau_bin_eta').apply(lambda x : efficiency_err(x, threshold, ISOWP, upper=True))
 
 
-plt.figure(figsize=(15,10))
+        # colors to use for plotting
+        col = {
+            01 : 'green',
+            05 : 'blue',
+            10 : 'red'
+        }
+        
+        x_Tau = effVSpt_Tau_dict[name]['gentau_vis_pt'] # is binned and the value is the mean of the entries per bin
+        for threshold in [0,30]: # consider the no threshold and the 30GeV offline threshold cases
+            plt.figure(figsize=(10,10))
+            for ISOWP in [01,05,10]:
+                # all values for turnON curves
+                eff_30_Tau = effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)]
+                eff_err_low_30_Tau = effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)]
+                eff_err_up_30_Tau = effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)]
 
-for name in dfTau_dict:
+                plt.errorbar(x_Tau,eff_30_Tau,xerr=1,yerr=[eff_err_low_30_Tau,eff_err_up_30_Tau],ls='None',label=r'ISOWP = {0}'.format(ISOWP),color=col[ISOWP],lw=2,marker='o',mec=col[ISOWP], alpha=0.5)
 
-  df = efficiencies_vs_pt[name]
-  plt.plot(df.gentau_vis_pt, df.efficiency05, label=legends_dict[name], color=colors_dict[name],lw=2)
+                p0 = [np.median(x_Tau), 1] # this is an mandatory initial guess for the fit
+                popt, pcov = curve_fit(sigmoid, x_Tau, eff_30_Tau, p0)
+                plt.plot(x_Tau, sigmoid(x_Tau, *popt), '-', label='_', color=col[ISOWP], lw=1.5, alpha=0.5)
+            
+            plt.legend(loc = 'lower right')
+            txt2 = (r'$E_{T}^{L1,\tau}$ > %i GeV' % (threshold))
+            t2 = plt.text(50,0.25, txt2, ha='left')
+            t2.set_bbox(dict(facecolor='white', edgecolor='white'))
+            plt.xlabel(r'$p_{T}^{gen,\tau}\ [GeV]$')
+            plt.ylabel(r'$\epsilon$')
+            plt.title('Efficiency vs pT')
+            plt.grid()
+            plt.xlim(0, 75)
+            plt.ylim(0., 1.10)
+            plt.subplots_adjust(bottom=0.12)
+            plt.savefig(plotdir+'/eff_vs_pt_allISOWP_at{0}GeV.pdf'.format(threshold))
+            plt.close()
 
-plt.ylim(0.75, 1.01)
-plt.legend(loc = 'lower right', fontsize=16)
-plt.xlabel(r'$p_{T}\,[GeV]$')
-plt.ylabel('Efficiency')
-plt.grid()
-plt.savefig(plotdir+'pubdt_eff05_pt.png')
-plt.savefig(plotdir+'pubdt_eff05_pt.pdf')
+        x_Tau = effVSeta_Tau_dict[name]['gentau_vis_abseta'] # is binned and the value is the mean of the entries per bin
+        for threshold in [0,30]: # consider the no threshold and the 30GeV offline threshold cases
+            plt.figure(figsize=(10,10))
+            for ISOWP in [01,05,10]:
+                # all values for turnON curves
+                eff_30_Tau = effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)]
+                eff_err_low_30_Tau = effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)]
+                eff_err_up_30_Tau = effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_err_up_at{1}GeV'.format(ISOWP,threshold)]
 
-plt.figure(figsize=(15,10))
+                plt.errorbar(x_Tau,eff_30_Tau,xerr=0.05,yerr=[eff_err_low_30_Tau,eff_err_up_30_Tau],ls='None',label=r'ISOWP = {0}'.format(ISOWP),color=col[ISOWP],lw=2,marker='o',mec=col[ISOWP], alpha=0.5)
 
-for name in dfTau_dict:
+                #p0 = [-2, -1, -1, -1, -1] # this is an mandatory initial guess for the fit
+                #popt, pcov = curve_fit(poly, x_Tau, eff_30_Tau, p0)
+                #plt.plot(x_Tau, poly(x_Tau, *popt), '-', label='_', color=col[ISOWP], lw=1.5, alpha=0.5)
+            
+            plt.legend(loc = 'lower left')
+            txt2 = (r'$E_{T}^{L1,\tau}$ > %i GeV' % (threshold))
+            t2 = plt.text(1.6,0.25, txt2, ha='left')
+            t2.set_bbox(dict(facecolor='white', edgecolor='white'))
+            plt.xlabel(r'$\eta^{gen,\tau}\ [GeV]$')
+            plt.ylabel(r'$\epsilon$')
+            plt.title('Efficiency vs pT')
+            plt.grid()
+            plt.xlim(1.5, 3.0)
+            plt.ylim(0., 1.10)
+            plt.subplots_adjust(bottom=0.12)
+            plt.savefig(plotdir+'/eff_vs_eta_allISOWP_at{0}GeV.pdf'.format(threshold))
+            plt.close()
 
-  df = efficiencies_vs_pt[name]
-  plt.plot(df.gentau_vis_pt, df.efficiency10, label=legends_dict[name], color=colors_dict[name],lw=2)
 
-plt.ylim(0.7, 1.01)
-plt.legend(loc = 'lower right', fontsize=16)
-plt.xlabel(r'$p_{T}\,[GeV]$')
-plt.ylabel('Efficiency')
-plt.grid()
-plt.savefig(plotdir+'pubdt_eff10_pt.png')
-plt.savefig(plotdir+'pubdt_eff10_pt.pdf')
-'''
+        for ISOWP in [01,05,10]:
+            # all values for turnON curves
+            effTauDM0 = effVSpt_TauDM0_dict[name]['efficiency_ISOWP{0}_at0GeV'.format(ISOWP)]
+            effTauDM1 = effVSpt_TauDM1_dict[name]['efficiency_ISOWP{0}_at0GeV'.format(ISOWP)]
+            effTauDM2 = effVSpt_TauDM2_dict[name]['efficiency_ISOWP{0}_at0GeV'.format(ISOWP)]
+            eff_err_low_TauDM0 = effVSpt_TauDM0_dict[name]['efficiency_ISOWP{0}_err_low_at0GeV'.format(ISOWP)]
+            eff_err_low_TauDM1 = effVSpt_TauDM1_dict[name]['efficiency_ISOWP{0}_err_low_at0GeV'.format(ISOWP)]
+            eff_err_low_TauDM2 = effVSpt_TauDM2_dict[name]['efficiency_ISOWP{0}_err_low_at0GeV'.format(ISOWP)]
+            eff_err_up_TauDM0 = effVSpt_TauDM0_dict[name]['efficiency_ISOWP{0}_err_up_at0GeV'.format(ISOWP)]
+            eff_err_up_TauDM1 = effVSpt_TauDM1_dict[name]['efficiency_ISOWP{0}_err_up_at0GeV'.format(ISOWP)]
+            eff_err_up_TauDM2 = effVSpt_TauDM2_dict[name]['efficiency_ISOWP{0}_err_up_at0GeV'.format(ISOWP)]
+            x_DM0_Tau = effVSpt_TauDM0_dict[name]['gentau_vis_pt']
+            x_DM1_Tau = effVSpt_TauDM1_dict[name]['gentau_vis_pt']
+            x_DM2_Tau = effVSpt_TauDM2_dict[name]['gentau_vis_pt']
+
+            plt.figure(figsize=(10,10))
+            plt.errorbar(x_DM0_Tau,effTauDM0,xerr=1,yerr=[eff_err_low_TauDM0,eff_err_up_TauDM0],ls='None',label=r'1-prong',color='limegreen',lw=2,marker='o',mec='limegreen')
+            plt.errorbar(x_DM1_Tau,effTauDM1,xerr=1,yerr=[eff_err_low_TauDM1,eff_err_up_TauDM1],ls='None',label=r'1-prong + $\pi^{0}$',color='darkorange',lw=2,marker='o',mec='darkorange')
+            plt.errorbar(x_DM2_Tau,effTauDM2,xerr=1,yerr=[eff_err_low_TauDM2,eff_err_up_TauDM2],ls='None',label=r'3-prong (+ $\pi^{0}$)',color='fuchsia',lw=2,marker='o',mec='fuchsia')
+
+            p0 = [np.median(x_DM0_Tau), 1] # this is an mandatory initial guess for the fit
+            popt, pcov = curve_fit(sigmoid, x_DM0_Tau, effTauDM0, p0)
+            plt.plot(x_DM0_Tau, sigmoid(x_DM0_Tau, *popt), '-', label='_', color='limegreen', lw=1.5)
+
+            p0 = [np.median(x_DM1_Tau), 1] # this is an mandatory initial guess for the fit
+            popt, pcov = curve_fit(sigmoid, x_DM1_Tau, effTauDM1, p0)
+            plt.plot(x_DM1_Tau, sigmoid(x_DM1_Tau, *popt), '-', label='_', color='darkorange', lw=1.5)
+
+            p0 = [np.median(x_DM2_Tau), 1] # this is an mandatory initial guess for the fit
+            popt, pcov = curve_fit(sigmoid, x_DM2_Tau, effTauDM2, p0)
+            plt.plot(x_DM2_Tau, sigmoid(x_DM2_Tau, *popt), '-', label='_', color='fuchsia', lw=1.5)
+
+            plt.legend(loc = 'lower right')
+            # txt = (r'Gen. $\tau$ decay mode:')
+            # t = plt.text(63,0.20, txt, ha='left', wrap=True)
+            # t.set_bbox(dict(facecolor='white', edgecolor='white'))
+            txt2 = (r'$E_{T}^{L1,\tau}$ > %i GeV' % (threshold))
+            t2 = plt.text(55,0.25, txt2, ha='left')
+            t2.set_bbox(dict(facecolor='white', edgecolor='white'))
+            plt.xlabel(r'$p_{T}^{gen,\tau}\ [GeV]$')
+            plt.ylabel(r'$\epsilon$')
+            plt.title('Efficiency vs pT - ISOWP={0}'.format(ISOWP))
+            plt.grid()
+            plt.xlim(0, 75)
+            plt.ylim(0., 1.10)
+            plt.subplots_adjust(bottom=0.12)
+            plt.savefig(plotdir+'/eff_vs_pt_ISOWP{0}.pdf'.format(ISOWP))
+            plt.close()
