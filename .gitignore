@@ -18,3 +18,5 @@ JupyScripts/.ipynb_checkpoints
 obj/
 *.cpp_x*
 *.py~
+TTrees_examples/
+HPO_*/
