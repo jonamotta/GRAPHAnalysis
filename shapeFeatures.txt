@@ -1,0 +1,25 @@
+FULL LIST OF SHAPE FEATURES AVAILABLE 
+
+    'cl3d_showerlength',        total shower length
+    'cl3d_coreshowerlength',    core shower length
+    'cl3d_firstlayer',          first layer of the shower
+    'cl3d_seetot',              energy-weighted RMS of eta-coordinates of all TCs          
+    'cl3d_seemax',              maximum value of energy-weighted RMS of eta-coordinates of TCs per layer
+    'cl3d_spptot',              energy-weighted RMS of phi-coordinates of all TCs   
+    'cl3d_sppmax',              maximum value of energy-weighted RMS of phi-coordinates of TCs per layer
+    'cl3d_szz',                 energy-weighted RMS of z-coordinates of TCs
+    'cl3d_srrtot',              energy-weighted RMS of r-coordinates of all TCs 
+    'cl3d_srrmax',              maximum value of energy-weighted RMS of r-coordinates of TCs per layer
+    'cl3d_srrmean',             average of energy-weighted RMS of r-coordinates of TCs per layer (calculated with Xcm of max TC in the layer)
+    'cl3d_hoe',                 energy in CE-H over energy in CE-E
+    'cl3d_meanz'               energy weighted mean of z-coordinates of TCs 
+
+    --- (here are the HARD / IMPOSSIBLE FEATURES TO IMPLEMENT IN FIRMWARE)
+
+    'cl3d_maxlayer',            layer with maximum energy
+    'cl3d_emaxe',               energy deposited in the maxlayer / energy
+    'cl3d_layer10',             number of layers at which 10% of energy is deposited
+    'cl3d_layer50',             number of layers at which 50% of energy is deposited
+    'cl3d_layer90',             number of layers at which 90% of energy is deposited
+    'cl3d_ntc67',               number of TCs at which 67% of energy is deposited
+    'cl3d_ntc90'                number of TCs at which 90% of energy is deposited
