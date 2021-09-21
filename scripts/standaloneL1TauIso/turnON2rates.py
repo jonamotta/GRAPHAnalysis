@@ -65,9 +65,9 @@ if __name__ == "__main__" :
     dRsgn = 0.1
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/rateEvaluation'
-    mapdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/mapping'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/rateEvaluation/rates'
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT_TJMP/hdf5dataframes/rateEvaluation'
+    mapdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT_TJMP/pklModels/mapping'
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT_TJMP/plots/rateEvaluation/rates'
     os.system('mkdir -p '+plotdir)
 
     # define the input and output dictionaries for the handling of different datasets
@@ -180,8 +180,7 @@ if __name__ == "__main__" :
         df4Rate.sort_values('cl3d_pt_c3', inplace=True)
         rate = []
         for thr in df4Rate['cl3d_pt_c3']:
-            single_rate = len(df4Rate.query('cl3d_pt_c3>{0}'.format(float(thr))))
-            rate.append(float(single_rate))
+            rate.append( float( len(df4Rate.query('cl3d_pt_c3>{0}'.format(float(thr)))) ) )
 
         rates_online[name] = ( np.sort(df4Rate['cl3d_pt_c3']), np.array(rate)/events_total[name]*events_frequency )
         rates_offline[name] = ( np.sort(df4Rate['cl3d_pt95']), np.array(rate)/events_total[name]*events_frequency )
@@ -204,8 +203,7 @@ if __name__ == "__main__" :
         tmp_DM0.sort_values('cl3d_pt_c3', inplace=True)
         rate_DM0 = []
         for thr in tmp_DM0['cl3d_pt_c3']:
-            single_rate = len(tmp_DM0.query('cl3d_pt_c3>{0}'.format(float(thr))))
-            rate_DM0.append(float(single_rate))
+            rate_DM0.append( float( len(tmp_DM0.query('cl3d_pt_c3>{0}'.format(float(thr)))) ) )
 
         rates_online_DM0[name] = ( np.sort(tmp_DM0['cl3d_pt_c3']), np.array(rate_DM0)/events_total[name]*events_frequency )
         rates_offline_DM0[name] = ( np.sort(tmp_DM0['cl3d_pt95']), np.array(rate_DM0)/events_total[name]*events_frequency )
@@ -218,8 +216,7 @@ if __name__ == "__main__" :
         tmp_DM1.sort_values('cl3d_pt_c3', inplace=True)
         rate_DM1 = []
         for thr in tmp_DM1['cl3d_pt_c3']:
-            single_rate = len(tmp_DM1.query('cl3d_pt_c3>{0}'.format(float(thr))))
-            rate_DM1.append(float(single_rate))
+            rate_DM1.append( float( len(tmp_DM1.query('cl3d_pt_c3>{0}'.format(float(thr)))) ) )
 
         rates_online_DM1[name] = ( np.sort(tmp_DM1['cl3d_pt_c3']), np.array(rate_DM1)/events_total[name]*events_frequency )
         rates_offline_DM1[name] = ( np.sort(tmp_DM1['cl3d_pt95']), np.array(rate_DM1)/events_total[name]*events_frequency )
@@ -232,8 +229,7 @@ if __name__ == "__main__" :
         tmp_DM2.sort_values('cl3d_pt_c3', inplace=True)
         rate_DM2 = []
         for thr in tmp_DM2['cl3d_pt_c3']:
-            single_rate = len(tmp_DM2.query('cl3d_pt_c3>{0}'.format(float(thr))))
-            rate_DM2.append(float(single_rate))
+            rate_DM2.append( float( len(tmp_DM2.query('cl3d_pt_c3>{0}'.format(float(thr)))) ) )
 
         rates_online_DM2[name] = ( np.sort(tmp_DM2['cl3d_pt_c3']), np.array(rate_DM2)/events_total[name]*events_frequency )
         rates_offline_DM2[name] = ( np.sort(tmp_DM2['cl3d_pt95']), np.array(rate_DM2)/events_total[name]*events_frequency )
