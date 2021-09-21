@@ -19,12 +19,15 @@ import datetime
 # tag = "/RelValSingleTau_noPU_caloTruth"
 
 # tag = "/RelValNu_PU200"
-tag = "/Minibias_PU200"
+# tag = "/Minibias_PU200"
 
 # tag = "/QCD_PU200_4iso"
 # tag = "/QCD_noPU_4iso"
 # tag = "/RelValQCD_PU200_4iso"
 # tag = "/RelValQCD_noPU_4iso"
+
+tag = "/TT_noPU"
+# tag = "/TT_PU200"
 
 # ====================================================================
 
@@ -35,9 +38,11 @@ tag = "/Minibias_PU200"
 
 # outFolder = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/inputFiles/RelValNu_v11'
 
-#outFolder = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/inputFiles/QCD_v11'
+# outFolder = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/inputFiles/QCD_v11'
 
-outFolder = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/inputFiles/Minbias_v11'
+# outFolder = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/inputFiles/Minbias_v11'
+
+outFolder = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/inputFiles/RelValTT_v11'
 
 # ====================================================================
 
@@ -68,7 +73,8 @@ dpmHome = '/dpm/in2p3.fr/home/cms/trivcat'
 # partialPath = "/store/user/jmotta/HGCAL/QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8"
 # partialPath = "/store/user/jmotta/HGCAL/RelValQCD_FlatPt_15_3000HS_14"
 # partialPath = "/store/user/jmotta/HGCAL/RelValQCD_Pt15To7000_Flat_14"
-partialPath = "/store/user/jmotta/HGCAL/MinBias_TuneCP5_14TeV-pythia8"
+# partialPath = "/store/user/jmotta/HGCAL/MinBias_TuneCP5_14TeV-pythia8"
+partialPath = "/store/user/jmotta/HGCAL/RelValTTbar_14TeV"
 
 path = dpmHome + partialPath + tag
 if outFolder[-1] != "/": outFolder += '/'

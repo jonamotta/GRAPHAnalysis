@@ -1,4 +1,5 @@
 #include <iostream>
+#include <math.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TChain.h>
@@ -18,7 +19,7 @@ int main (int argc, char** argv)
     {
       cerr << "missing input parameters : argc is: " << argc << endl ;
       cerr << "usage: " << argv[0]
-           << " inputFileNameList outputFileName nEvents isTau isQCD gen3Dmatch DEBUG" << endl ;
+           << " inputFileNameList outputFileName nEvents isTau isQCD isTT gen3Dmatch DEBUG" << endl ;
       return 1;
     }
 
@@ -34,13 +35,14 @@ int main (int argc, char** argv)
     int nEvents = atoi(argv[3]);
     int isTau = atoi(argv[4]);
     int isQCD = atoi(argv[5]);
+    int isTT  = atoi(argv[6]);
 
     bool gen3Dmatch = false;
-    string opt6 (argv[6]);
+    string opt6 (argv[7]);
     if (opt6 == "1") gen3Dmatch = true;
 
     bool DEBUG = false;
-    string opt7 (argv[7]);
+    string opt7 (argv[8]);
     if (opt7 == "1") DEBUG = true;
 
     // ---------------------------------------------------------------------------------------------
@@ -279,6 +281,100 @@ int main (int argc, char** argv)
 
             theSkimTree.m_genjet_n = theSkimTree.m_genjet_pt.size();
             if (DEBUG) cout << "    ** DEBUG: number of selected genjets in the endcaps is " << theSkimTree.m_genjet_pt.size() << endl;
+        }
+
+        else if(isTT){
+            int particleToLookFor = 15;  // the tau
+            int particleItComesFrom = 6; // the t/tbar quarks
+            // bool found = false;
+
+            vector<int> t, tbar;
+            // store dupliclate chain of t/tbar (from radiation)
+            for (int idx = 0; idx < int(theBigTree.gen_pdgid->size()); ++idx) {
+                if (abs(theBigTree.gen_pdgid->at(idx)) != particleItComesFrom) continue;
+                if (signbit(theBigTree.gen_pdgid->at(idx))) tbar.push_back(idx);
+                else t.push_back(idx);
+            }
+
+            // store t/tbar daughters
+            vector<int> t_daug, tbar_daug;
+            t_daug = theBigTree.gen_daughters->at(t[t.size()-1]);
+            tbar_daug = theBigTree.gen_daughters->at(tbar[tbar.size()-1]);
+
+            // store W and b separately
+            int b_, Wplus_, Wminus_, bbar_;
+            for (int idx = 0; idx < int(t_daug.size()); ++idx) {
+                if (abs(theBigTree.gen_pdgid->at(idx)) == 5) b_ = idx;
+                else Wplus_ = idx;
+            }
+            for (int idx = 0; idx < int(t_daug.size()); ++idx) {
+                if (abs(theBigTree.gen_pdgid->at(idx)) == 5) bbar_ = idx;
+                else Wminus_ = idx;
+            }
+
+            // store dupliclate chain of Wplus (from radiation)
+            vector<int> Wplus, Wminus;
+            int daughterItComesFrom = theBigTree.gen_pdgid->at(Wplus_);
+            for (int idx = Wplus_; idx < int(theBigTree.gen_pdgid->size()); ++idx) {
+                if (theBigTree.gen_pdgid->at(idx) != daughterItComesFrom) continue;
+                Wplus.push_back(idx);
+            }
+            daughterItComesFrom = theBigTree.gen_pdgid->at(Wminus_);
+            for (int idx = Wminus_; idx < int(theBigTree.gen_pdgid->size()); ++idx) {
+                if (theBigTree.gen_pdgid->at(idx) != daughterItComesFrom) continue;
+                Wminus.push_back(idx);
+            }
+
+            // store Wplus/minus daughters
+            vector<int> Wplus_daug, Wminus_daug;
+            Wplus_daug = theBigTree.gen_daughters->at(Wplus[Wplus.size()-1]);
+            Wminus_daug = theBigTree.gen_daughters->at(Wminus[Wminus.size()-1]);
+
+            // look for taus and store them
+            vector<int> hard_taus, hgcal_taus;
+            for (int idx = 0; idx < int(Wplus_daug.size()); ++idx) {
+                if (particleToLookFor != theBigTree.gen_pdgid->at(idx)) continue;
+                hard_taus.push_back(idx);
+            }
+            for (int idx = 0; idx < int(Wminus_daug.size()); ++idx) {
+                if (particleToLookFor != theBigTree.gen_pdgid->at(idx)) continue;
+                hard_taus.push_back(idx);
+            }
+            for (int idx = 0; idx < int(hard_taus.size()); ++idx) {
+                if ( abs(theBigTree.gen_eta->at(idx)) < 1.5 and abs(theBigTree.gen_eta->at(idx) > 3.0) ) continue;
+                hgcal_taus.push_back(idx);
+            }
+
+            // skip event if no hard taus entering HGCAL
+            if (hgcal_taus.size() == 0) {
+                cout << "** WARNING: no hardscattering taus found in the endcaps for event " << theBigTree.event << " (entry " << iEvent << ") - SKIPPING IT" << endl;
+                continue;
+            }
+
+            // store dupliclate chain of b/bbar (from radiation)
+            vector<int> b, bbar;
+            daughterItComesFrom = theBigTree.gen_pdgid->at(b_);
+            for (int idx = b_; idx < int(theBigTree.gen_pdgid->size()); ++idx) {
+                if (theBigTree.gen_pdgid->at(idx) != daughterItComesFrom) continue;
+                b.push_back(idx);
+            }
+            daughterItComesFrom = theBigTree.gen_pdgid->at(bbar_);
+            for (int idx = bbar_; idx < int(theBigTree.gen_pdgid->size()); ++idx) {
+                if (theBigTree.gen_pdgid->at(idx) != daughterItComesFrom) continue;
+                bbar.push_back(idx);
+            }
+
+            // get hard scattering taus in the gentau_ branches and store them
+            for (int idx1 = 0; idx1 < int(hard_taus.size()); ++idx1) {
+                for (int idx2 = 0; idx2 < int(theBigTree.gentau_eta->size()); ++idx2){
+                    if (theBigTree.gen_eta->at(idx1) != theBigTree.gentau_eta->at(idx2)) continue;
+                    hard_taus.push_back(idx2);
+                }
+            }
+
+            // store tau daughters information
+            vector<vector<int>> tau_daug;
+
         }
 
         if ((isTau && theSkimTree.m_gentau_pt.size() == 0) || (isQCD && theSkimTree.m_genjet_pt.size() == 0)) {
