@@ -6,16 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
-from sklearn import metrics
-from sklearn import model_selection
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score, cross_val_predict
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.metrics import roc_curve, roc_auc_score
-from sklearn.ensemble import RandomForestClassifier
 import pickle
-import matplotlib.lines as mlines
-import scikitplot as skplt
 import argparse
 
 
@@ -170,9 +161,9 @@ if __name__ == "__main__" :
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected'
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_C1fullC2C3_fullPUnoPt'
     matchdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated'
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_C1fullC2C3_fullPUnoPt'
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir)
 
     # define the input and output dictionaries for the handling of different datasets

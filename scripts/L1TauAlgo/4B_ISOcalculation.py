@@ -6,16 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
-from sklearn import metrics
-from sklearn import model_selection
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score, cross_val_predict
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.metrics import roc_curve, roc_auc_score
-from sklearn.ensemble import RandomForestClassifier
 import pickle
-import matplotlib.lines as mlines
-import scikitplot as skplt
 import argparse
 
 
