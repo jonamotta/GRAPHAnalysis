@@ -63,7 +63,7 @@ struct skimTree
         m_gentau_totNcharged.clear();
 
         // RECO TRIGGER CELLS INFORMATION
-        m_tc_n = -1.;
+/*        m_tc_n = -1.;
         m_tc_id.clear();
         m_tc_subdet.clear();
         m_tc_zside.clear();
@@ -91,7 +91,7 @@ struct skimTree
         m_tc_multicluster_pt.clear();
         m_tc_iTau.clear();
         m_tc_pdgid.clear();
-
+*/
         // RECO 3D CLUSTERS INFORMATION
         m_cl3d_n = -1.;
         m_cl3d_id.clear();
@@ -182,7 +182,7 @@ struct skimTree
         m_skimT->Branch("gentau_totNcharged", &m_gentau_totNcharged);
 
         // RECO TRIGGER CELLS INFORMATION
-        m_skimT->Branch("tc_n", &m_tc_n);
+/*        m_skimT->Branch("tc_n", &m_tc_n);
         m_skimT->Branch("tc_id", &m_tc_id);
         m_skimT->Branch("tc_subdet", &m_tc_subdet);
         m_skimT->Branch("tc_zside", &m_tc_zside);
@@ -210,7 +210,7 @@ struct skimTree
         m_skimT->Branch("tc_multicluster_pt", &m_tc_multicluster_pt);
         m_skimT->Branch("tc_iTau", &m_tc_iTau);
         m_skimT->Branch("tc_pdgid", &m_tc_pdgid);
-
+*/
         // RECO 3D CLUSTERS INFORMATION
         m_skimT->Branch("cl3d_n", &m_cl3d_n);
         m_skimT->Branch("cl3d_id", &m_cl3d_id);
@@ -305,7 +305,7 @@ struct skimTree
     vector<int>    m_gentau_totNcharged;
 
     // RECO TRIGGER CELLS INFORMATION
-    int                     m_tc_n;
+/*    int                     m_tc_n;
     vector<unsigned int>    m_tc_id;
     vector<int>             m_tc_subdet;
     vector<int>             m_tc_zside;
@@ -333,7 +333,7 @@ struct skimTree
     vector<float>           m_tc_multicluster_pt;
     vector<int>             m_tc_iTau;
     vector<int>             m_tc_pdgid;
-
+*/
     // RECO 3D CLUSTERS INFORMATION
     int                             m_cl3d_n;
     vector<unsigned int>            m_cl3d_id;
