@@ -4,6 +4,7 @@
 #       - 3prong(+pi0)
 
 import os
+import sys
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -19,6 +20,21 @@ import pickle
 import matplotlib.lines as mlines
 import scikitplot as skplt
 import argparse
+
+class Logger(object):
+    def __init__(self,file):
+        self.terminal = sys.stdout
+        self.log = open(file, "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        #this flush method is needed for python 3 compatibility.
+        #this handles the flush command by doing nothing.
+        #you might want to specify some extra behavior here.
+        pass
 
 
 def save_obj(obj,dest):
@@ -38,7 +54,6 @@ if __name__ == "__main__" :
 
     # parse user's options
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
-    parser.add_argument('--noTraining', dest='doTraining', help='skip training and do only calibration?',  action='store_false', default=True)
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--PUWP', dest='PUWP', help='which working point do you want to use (90, 95, 99)?', default='90')
@@ -52,71 +67,53 @@ if __name__ == "__main__" :
         print('** EXITING')
         exit()
 
-    print('** INFO: using PU rejection BDT WP: '+args.PUWP)
-    print('** INFO: using ISO BDT WP: '+args.ISOWP)
-
     # dictionary of front-end options
     feNames_dict = {
         'threshold'    : 'Threshold',
-        'supertrigger' : 'Super Trigger Cell',
-        'bestchoice'   : 'BestChoice',
-        'bestcoarse'   : 'BestChoiceCoarse',
         'mixed'        : 'Mixed BC+STC',  
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated'.format(args.PUWP)
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/DMsorted'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/DMsorting_PUWP{0}_ISOWP{1}'.format(args.PUWP,args.ISOWP)
-    model_dict_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting'
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_C1fullC2C3_fullPUnoPt_fullISO'.format(args.PUWP)
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/DMsorted_C1fullC2C3_fullPUnoPt_fullISO'
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/DMsorting_C1fullC2C3_fullPUnoPt_PUWP{0}_fullISO_ISOWP{1}'.format(args.PUWP,args.ISOWP)
+    model_dict_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_C1fullC2C3_fullPUnoPt_fullISO'
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_dict_outdir)
+
+    # set output to go both to terminal and to file
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_C1fullC2C3_fullPUnoPt_fullISO/performance_PUWP{0}_ISOWP{1}.log".format(args.PUWP,args.ISOWP))
+
+    print('** INFO: using PU rejection BDT WP: '+args.PUWP)
+    print('** INFO: using ISO BDT WP: '+args.ISOWP)
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
         'threshold'    : indir+'/Training_PU200_th_PUWP{0}_isoQCDrejected.hdf5'.format(args.PUWP),
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     inFileValidation_dict = {
         'threshold'    : indir+'/Validation_PU200_th_PUWP{0}_isoQCDrejected.hdf5'.format(args.PUWP),
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     outFileTraining_dict = {
         'threshold'    : outdir+'/Training_PU200_th_PUWP{0}_ISOWP{1}_DMsorted.hdf5'.format(args.PUWP,args.ISOWP),
-        'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
     outFileValidation_dict = {
         'threshold'    : outdir+'/Validation_PU200_th_PUWP{0}_ISOWP{1}_DMsorted.hdf5'.format(args.PUWP,args.ISOWP),
-        'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
     outFileNu_dict = {
         'threshold'    : outdir+'/Nu_PU200_th_PUWP{0}_ISOWP{1}_DMsorted.hdf5'.format(args.PUWP,args.ISOWP),
-        'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
     outFile_model_dict = {
         'threshold'    : model_dict_outdir+'/model_DMsorting_th_PU200_PUWP{0}_ISOWP{1}.pkl'.format(args.PUWP,args.ISOWP),
-        'supertrigger' : model_dict_outdir+'/',
-        'bestchoice'   : model_dict_outdir+'/',
-        'bestcoarse'   : model_dict_outdir+'/',
         'mixed'        : model_dict_outdir+'/'
     }
 
@@ -124,17 +121,17 @@ if __name__ == "__main__" :
     dfValidation_dict = {} # dictionary of the merged test dataframes
     dfNu_dict = {}
 
-    dfTrainingDM0_dict = {}
-    dfTrainingDM1_dict = {}
-    dfTrainingDM10_dict = {}
-    dfTrainingDM11_dict = {}
-    dfTrainingDM2_dict = {}
+    dfTrDM0_dict = {}
+    dfTrDM1_dict = {}
+    dfTrDM10_dict = {}
+    dfTrDM11_dict = {}
+    dfTrDM2_dict = {}
     dfTrainingQCD_dict = {}
-    dfValidationDM0_dict = {}
-    dfValidationDM1_dict = {}
-    dfValidationDM10_dict = {}
-    dfValidationDM11_dict = {}
-    dfValidationDM2_dict = {}
+    dfValDM0_dict = {}
+    dfValDM1_dict = {}
+    dfValDM10_dict = {}
+    dfValDM11_dict = {}
+    dfValDM2_dict = {}
     dfValidationQCD_dict = {}
     
     model_dict = {}            # dictionary of the model for DM sorting
@@ -142,35 +139,31 @@ if __name__ == "__main__" :
     cm_dict = {}
     ns_dict = {}
     
-    # features for BDT training
-    #features = ['cl3d_pt_c1', 'cl3d_pt_c2', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_maxlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_layer10', 'cl3d_layer50', 'cl3d_layer90', 'cl3d_ntc67', 'cl3d_ntc90', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_eSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_eSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_eIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_eIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7']
-    features = ['cl3d_pt_c1', 'cl3d_pt_c2', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_maxlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_layer10', 'cl3d_layer50', 'cl3d_layer90', 'cl3d_ntc67', 'cl3d_ntc90'] #, 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4']
+    # features from ISO to be possibli used
+    # 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_eSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_eSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_eIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_eIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7'
 
-    # features for BDT training - WITHOUT DEPRECATED
-    features = ['cl3d_pt_c1', 'cl3d_pt_c2', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_szz', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz'] #, 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4']
-
+    # features used for the sorting step - FULL AVAILABLE
+    features = ['cl3d_pt_c1', 'cl3d_pt_c2', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
 
     # name : [title, [min, max, step]
-    features_dict = {'cl3d_pt_c1'            : [r'3D cluster $p_{T}$ after C1',[0.,500.,50]], 
-                     'cl3d_pt_c2'            : [r'3D cluster $p_{T}$ after C2',[0.,500.,50]],
+    features_dict = {'cl3d_c1'               : [r'C1 factor value',[0.,2.,10]], 
+                     'cl3d_c2'               : [r'C2 factor value',[0.75,2.,15]], 
+                     'cl3d_c3'               : [r'C3 factor value',[0.75,2.,15]],
                      'cl3d_pt_c3'            : [r'3D cluster $p_{T}$ after C3',[0.,500.,50]],
-                     'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,15]], 
+                     'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,10]], 
                      'cl3d_showerlength'     : [r'3D cluster shower length',[0.,35.,15]], 
                      'cl3d_coreshowerlength' : [r'Core shower length ',[0.,35.,15]], 
                      'cl3d_firstlayer'       : [r'3D cluster first layer',[0.,20.,20]], 
-                     'cl3d_maxlayer'         : [r'3D cluster maximum layer',[0.,50.,50]], 
+                     'cl3d_seetot'           : [r'3D cluster total $\sigma_{ee}$',[0.,0.15,10]],
+                     'cl3d_seemax'           : [r'3D cluster max $\sigma_{ee}$',[0.,0.15,10]],
+                     'cl3d_spptot'           : [r'3D cluster total $\sigma_{\phi\phi}$',[0.,0.1,10]],
+                     'cl3d_sppmax'           : [r'3D cluster max $\sigma_{\phi\phi}$',[0.,0.1,10]],
                      'cl3d_szz'              : [r'3D cluster $\sigma_{zz}$',[0.,60.,20]], 
-                     'cl3d_seetot'           : [r'3D cluster total $\sigma_{ee}$',[0.,0.15,10]], 
-                     'cl3d_spptot'           : [r'3D cluster total $\sigma_{\phi\phi}$',[0.,0.1,10]], 
-                     'cl3d_srrtot'           : [r'3D cluster total $\sigma_{rr}$',[0.,0.01,10]], 
+                     'cl3d_srrtot'           : [r'3D cluster total $\sigma_{rr}$',[0.,0.01,10]],
+                     'cl3d_srrmax'           : [r'3D cluster max $\sigma_{rr}$',[0.,0.01,10]],
                      'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[0.,0.01,10]], 
                      'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[0.,4.,20]], 
                      'cl3d_meanz'            : [r'3D cluster meanz',[325.,375.,30]], 
-                     'cl3d_layer10'          : [r'N layers with 10% E deposit',[0.,15.,30]], 
-                     'cl3d_layer50'          : [r'N layers with 50% E deposit',[0.,30.,60]], 
-                     'cl3d_layer90'          : [r'N layers with 10% E deposit',[0.,40.,40]], 
-                     'cl3d_ntc67'            : [r'Number of 3D clusters with 67% of energy',[0.,50.,10]], 
-                     'cl3d_ntc90'            : [r'Number of 3D clusters with 10% of energy',[0.,100.,20]],
                      #'cl3d_NclIso_dR4'              : [r'Number of clusters inside an isolation cone of dR=0.4',[0.,10.,10]],
                      #'cl3d_etIso_dR4'               : [r'Clusters $E_{T}$ inside an isolation cone of dR=0.4',[0.,200.,40]],
                      #'tower_etSgn_dRsgn1'           : [r'$E_{T}$ inside a signal cone of dR=0.1',[0.,200.,40]],
@@ -185,24 +178,6 @@ if __name__ == "__main__" :
                      #'tower_eIso_dRsgn2_dRiso4'     : [r'Towers $E$ between dR=0.2-0.4 around L1 candidate',[0.,400.,40]],
                      #'tower_etEmIso_dRsgn2_dRiso4'  : [r'Towers $E_{T}^{em}$ between dR=0.2-0.4 around L1 candidate',[0.,150.,30]],
                      #'tower_etHadIso_dRsgn2_dRiso7' : [r'Towers $E_{T}^{had}$ between dR=0.2-0.7 around L1 candidate',[0.,200.,40]]
-    }
-
-    # colors to use for plotting
-    colors_dict = {
-        'threshold'    : 'blue',
-        'supertrigger' : 'red',
-        'bestchoice'   : 'olive',
-        'bestcoarse'   : 'orange',
-        'mixed'        : 'fuchsia'
-    }
-
-    # legend to use for plotting
-    legends_dict = {
-        'threshold'    : 'Threshold 1.35 mipT',
-        'supertrigger' : 'STC4+16',
-        'bestchoice'   : 'BC Decentral',
-        'bestcoarse'   : 'BC Coarse 2x2 TC',
-        'mixed'        : 'Mixed BC + STC'
     }
 
     #*****************************************************************************#
@@ -225,68 +200,72 @@ if __name__ == "__main__" :
 
         ######################### SELECT EVENTS FOR TRAINING #########################  
 
-        dfNuTraining = dfTraining_dict[name].query('gentau_decayMode==-1 and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP))
-        dfNuValidation = dfValidation_dict[name].query('gentau_decayMode==-1 and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP))
-        dfNu_dict[name] = pd.concat([dfNuTraining,dfNuValidation], sort=False)
+        dfNuTr = dfTraining_dict[name].query('gentau_decayMode==-1 and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP)).copy(deep=True)
+        dfNuVal = dfValidation_dict[name].query('gentau_decayMode==-1 and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP)).copy(deep=True)
+        dfNu_dict[name] = pd.concat([dfNuTr,dfNuVal], sort=False)
 
-        dfTraining_dict[name] = dfTraining_dict[name].query('(gentau_decayMode==0 or gentau_decayMode==1 or gentau_decayMode==10 or gentau_decayMode==11) and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP))
-        dfValidation_dict[name] = dfValidation_dict[name].query('(gentau_decayMode==0 or gentau_decayMode==1 or gentau_decayMode==10 or gentau_decayMode==11) and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP))
+        dfTr = dfTraining_dict[name].query('(gentau_decayMode==0 or gentau_decayMode==1 or gentau_decayMode==10 or gentau_decayMode==11) and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP)).copy(deep=True)
+        dfVal = dfValidation_dict[name].query('(gentau_decayMode==0 or gentau_decayMode==1 or gentau_decayMode==10 or gentau_decayMode==11) and cl3d_pubdt_passWP{0}==True and cl3d_isobdt_passWP{1}==True'.format(args.PUWP,args.ISOWP)).copy(deep=True)
 
         # fill all the DM dataframes
-        dfTrainingDM0_dict[name] = dfTraining_dict[name].query('gentau_decayMode==0')
-        dfTrainingDM1_dict[name] = dfTraining_dict[name].query('gentau_decayMode==1')
-        dfTrainingDM10_dict[name] = dfTraining_dict[name].query('gentau_decayMode==10')
-        dfTrainingDM11_dict[name] = dfTraining_dict[name].query('gentau_decayMode==11')
-        dfTrainingDM2_dict[name] = dfTraining_dict[name].query('gentau_decayMode==10 or gentau_decayMode==11')
+        dfTrDM0_dict[name] = dfTraining_dict[name].query('gentau_decayMode==0').copy(deep=True)
+        dfTrDM1_dict[name] = dfTraining_dict[name].query('gentau_decayMode==1').copy(deep=True)
+        dfTrDM10_dict[name] = dfTraining_dict[name].query('gentau_decayMode==10').copy(deep=True)
+        dfTrDM11_dict[name] = dfTraining_dict[name].query('gentau_decayMode==11').copy(deep=True)
+        dfTrDM2_dict[name] = dfTraining_dict[name].query('gentau_decayMode==10 or gentau_decayMode==11').copy(deep=True)
 
-        dfValidationDM0_dict[name] = dfValidation_dict[name].query('gentau_decayMode==0')
-        dfValidationDM1_dict[name] = dfValidation_dict[name].query('gentau_decayMode==1')
-        dfValidationDM10_dict[name] = dfValidation_dict[name].query('gentau_decayMode==10')
-        dfValidationDM11_dict[name] = dfValidation_dict[name].query('gentau_decayMode==11')
-        dfValidationDM2_dict[name] = dfValidation_dict[name].query('gentau_decayMode==10 or gentau_decayMode==11')
+        dfValDM0_dict[name] = dfValidation_dict[name].query('gentau_decayMode==0').copy(deep=True)
+        dfValDM1_dict[name] = dfValidation_dict[name].query('gentau_decayMode==1').copy(deep=True)
+        dfValDM10_dict[name] = dfValidation_dict[name].query('gentau_decayMode==10').copy(deep=True)
+        dfValDM11_dict[name] = dfValidation_dict[name].query('gentau_decayMode==11').copy(deep=True)
+        dfValDM2_dict[name] = dfValidation_dict[name].query('gentau_decayMode==10 or gentau_decayMode==11').copy(deep=True)
 
         # replace DMs by categories
         dfTraining_dict[name]['gentau_decayMode'] = dfTraining_dict[name]['gentau_decayMode'].replace([10,11], 2) # tag 3-prong(+pi)
         dfValidation_dict[name]['gentau_decayMode'] = dfValidation_dict[name]['gentau_decayMode'].replace([10,11], 2) # tag 3-prong(+pi)  
 
+        dfTr['gentau_decayMode'] = dfTr['gentau_decayMode'].replace([10,11], 2) # tag 3-prong(+pi)
+        dfVal['gentau_decayMode'] = dfVal['gentau_decayMode'].replace([10,11], 2) # tag 3-prong(+pi)  
+
 
         ######################### TRAINING OF BDT #########################
 
-        if args.doTraining:
-            print('\n** INFO: training random forest')
-            inputs = dfTraining_dict[name][features]
-            target = dfTraining_dict[name]['gentau_decayMode']
-            RFC = RandomForestClassifier(n_jobs=10, random_state=0, class_weight='balanced', max_depth=2, n_estimators=1000)
-            model_dict[name] = RFC.fit(inputs,target)
-            
-            save_obj(model_dict[name], outFile_model_dict[name])
+        print('\n** INFO: training random forest')
+        inputs = dfTr[features]
+        target = dfTr['gentau_decayMode']
+        RFC = RandomForestClassifier(n_jobs=10, random_state=0, class_weight='balanced', max_depth=2, n_estimators=1000)
+        model_dict[name] = RFC.fit(inputs,target)
+        
+        save_obj(model_dict[name], outFile_model_dict[name])
 
-        else:
-            model_dict[name] = load_obj(outFile_model_dict[name])
-
+        probas_tr = model_dict[name].predict_proba(dfTr[features])
+        plt.figure(figsize=(15,10))
+        skplt.metrics.plot_roc(dfTr['gentau_decayMode'], probas_tr)
+        plt.savefig(plotdir+'/DM_roc_PUWP'+args.PUWP+'_ISOWP'+args.ISOWP+'_'+name+'_training.pdf')
+        plt.close()
 
         ######################### APPLICATION OF BDT #########################
 
         print('\n** INFO: doing K-fold validation')
-        dfValidation_dict[name]['cl3d_predDM'] = cross_val_predict(model_dict[name], dfValidation_dict[name][features], dfValidation_dict[name]['gentau_decayMode'], cv=5)
+        dfVal['cl3d_predDM'] = cross_val_predict(model_dict[name], dfVal[features], dfVal['gentau_decayMode'], cv=5)
+        probas_val = model_dict[name].predict_proba(dfVal[features])
+        dfVal['cl3d_probDM0'] = probas_val[:,0]
+        dfVal['cl3d_probDM1'] = probas_val[:,1]
+        dfVal['cl3d_probDM2'] = probas_val[:,2]
+        plt.figure(figsize=(15,10))
+        skplt.metrics.plot_roc(dfVal['gentau_decayMode'], probas_val)
+        plt.savefig(plotdir+'/DM_roc_PUWP'+args.PUWP+'_ISOWP'+args.ISOWP+'_'+name+'_validation.pdf')
+        plt.close()
 
         print('\n** INFO: doing probability prediction')
         dfTraining_dict[name]['cl3d_predDM'] = model_dict[name].predict(dfTraining_dict[name][features])
         probas_train = model_dict[name].predict_proba(dfTraining_dict[name][features])
-        plt.figure(figsize=(15,10))
-        skplt.metrics.plot_roc(dfTraining_dict[name]['gentau_decayMode'], probas_train)
-        plt.savefig(plotdir+'/DM_roc_PUWP'+args.PUWP+'_ISOWP'+args.ISOWP+'_'+name+'_training.pdf')
-        plt.close()
         dfTraining_dict[name]['cl3d_probDM0'] = probas_train[:,0]
         dfTraining_dict[name]['cl3d_probDM1'] = probas_train[:,1]
         dfTraining_dict[name]['cl3d_probDM2'] = probas_train[:,2]
 
         dfValidation_dict[name]['cl3d_predDM'] = model_dict[name].predict(dfValidation_dict[name][features])
         probas_valid = model_dict[name].predict_proba(dfValidation_dict[name][features])
-        plt.figure(figsize=(15,10))
-        skplt.metrics.plot_roc(dfValidation_dict[name]['gentau_decayMode'], probas_valid)
-        plt.savefig(plotdir+'/DM_roc_PUWP'+args.PUWP+'_ISOWP'+args.ISOWP+'_'+name+'_validation.pdf')
-        plt.close()
         dfValidation_dict[name]['cl3d_probDM0'] = probas_valid[:,0]
         dfValidation_dict[name]['cl3d_probDM1'] = probas_valid[:,1]
         dfValidation_dict[name]['cl3d_probDM2'] = probas_valid[:,2]
@@ -299,8 +278,8 @@ if __name__ == "__main__" :
 
         ######################### MAKE CONFUSION MATRICES #########################
 
-        DMs_dict[name] = dfValidation_dict[name].groupby('gentau_decayMode')['cl3d_eta'].count()
-        cm_dict[name] = confusion_matrix(dfValidation_dict[name].gentau_decayMode, dfValidation_dict[name].cl3d_predDM)
+        DMs_dict[name] = dfVal.groupby('gentau_decayMode')['cl3d_eta'].count()
+        cm_dict[name] = confusion_matrix(dfVal.gentau_decayMode, dfVal.cl3d_predDM)
         cm_dict[name] = cm_dict[name].astype('float') / cm_dict[name].sum(axis=1)[:, np.newaxis]
         ns_dict[name] = DMs_dict[name]
         print('\n** INFO: fraction of correctly identified DMs - FE {0}: {1}'.format(feNames_dict[name], (cm_dict[name][0,0]*ns_dict[name][0]+cm_dict[name][1,1]*ns_dict[name][1]+cm_dict[name][2,2]*ns_dict[name][2])/np.sum(ns_dict[name])))
@@ -312,18 +291,20 @@ if __name__ == "__main__" :
         ######################### PLOTTING #########################
 
         if args.doPlots:
+            os.system('mkdir -p '+plotdir+'/features/')
+
             ######################### PLOT FEATURES #########################
             for var in features_dict:
                 plt.figure(figsize=(8,8))
-                plt.hist(dfTrainingDM0_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'1-prong', color='limegreen',  histtype='step', lw=2, alpha=0.8)
-                plt.hist(dfTrainingDM1_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'1-prong + $\pi^{0}$', color='darkorange',  histtype='step', lw=2, alpha=0.8)
-                plt.hist(dfTrainingDM2_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'3-prong (+ $\pi^{0}$)', color='fuchsia',  histtype='step', lw=2, alpha=0.8)
+                plt.hist(dfTrDM0_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'1-prong', color='limegreen',  histtype='step', lw=2, alpha=0.8)
+                plt.hist(dfTrDM1_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'1-prong + $\pi^{0}$', color='darkorange',  histtype='step', lw=2, alpha=0.8)
+                plt.hist(dfTrDM2_dict[name][var], density=True, bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]),  label=r'3-prong (+ $\pi^{0}$)', color='fuchsia',  histtype='step', lw=2, alpha=0.8)
                 plt.legend(loc = 'upper right')
                 plt.grid(linestyle=':')
                 plt.xlabel(features_dict[var][0])
                 plt.ylabel(r'Normalized events')
                 plt.subplots_adjust(bottom=0.12)
-                plt.savefig(plotdir+'/'+var+'_'+name+'_DMs.pdf')
+                plt.savefig(plotdir+'/features/'+var+'_'+name+'_DMs.pdf')
                 plt.close()
 
             ######################### FEATURE IMPORTANCE #########################
@@ -372,9 +353,9 @@ if __name__ == "__main__" :
 
             print('\n** INFO: plotting predicted probabilities')
             plt.figure(figsize=(15,10))
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==0].cl3d_probDM0, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong', color='limegreen', density=True)
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==1].cl3d_probDM0, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong$+\pi_0$', color='darkorange', density=True)
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==2].cl3d_probDM0, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'3-prongs($+\pi_0$)', color='fuchsia', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==0].cl3d_probDM0, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong', color='limegreen', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==1].cl3d_probDM0, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong$+\pi_0$', color='darkorange', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==2].cl3d_probDM0, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'3-prongs($+\pi_0$)', color='fuchsia', density=True)
             plt.legend(loc = 'upper right')
             plt.title(r'Probabilities 1-prong category')
             plt.ylabel(r'Entries')
@@ -382,9 +363,9 @@ if __name__ == "__main__" :
             plt.close()
 
             plt.figure(figsize=(15,10))
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==0].cl3d_probDM1, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong', color ='limegreen', density=True)
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==1].cl3d_probDM1, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong$+\pi_0$', color ='darkorange', density=True)
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==2].cl3d_probDM1, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'3-prongs($+\pi_0$)', color ='fuchsia', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==0].cl3d_probDM1, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong', color ='limegreen', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==1].cl3d_probDM1, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong$+\pi_0$', color ='darkorange', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==2].cl3d_probDM1, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'3-prongs($+\pi_0$)', color ='fuchsia', density=True)
             plt.legend(loc = 'upper right')
             plt.title(r'Probabilities 1-prong$+\pi_0$ category')
             plt.ylabel(r'Entries')
@@ -392,9 +373,9 @@ if __name__ == "__main__" :
             plt.close()
 
             plt.figure(figsize=(15,10))
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==0].cl3d_probDM2, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong', color='limegreen', density=True)
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==1].cl3d_probDM2, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong$+\pi_0$', color='darkorange', density=True)
-            plt.hist(dfValidation_dict[name][dfValidation_dict[name].gentau_decayMode==2].cl3d_probDM2, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'3-prongs($+\pi_0$)', color='fuchsia', density=True)              
+            plt.hist(dfVal[dfVal.gentau_decayMode==0].cl3d_probDM2, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong', color='limegreen', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==1].cl3d_probDM2, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'1-prong$+\pi_0$', color='darkorange', density=True)
+            plt.hist(dfVal[dfVal.gentau_decayMode==2].cl3d_probDM2, bins=np.arange(0., 1., 0.05), histtype='step', lw=2, label=r'3-prongs($+\pi_0$)', color='fuchsia', density=True)              
             plt.legend(loc = 'upper right')
             plt.title(r'Probabilities 3-prong($+\pi_0$) category')
             plt.ylabel(r'Entries')
@@ -425,7 +406,8 @@ if __name__ == "__main__" :
         store_nu[name] = dfNu_dict[name]
         store_nu.close()
 
-
+# restore normal output
+sys.stdout = sys.__stdout__
 
 
 

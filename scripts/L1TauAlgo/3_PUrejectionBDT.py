@@ -26,7 +26,7 @@ class Logger(object):
         #this flush method is needed for python 3 compatibility.
         #this handles the flush command by doing nothing.
         #you might want to specify some extra behavior here.
-        pass    
+        pass
 
 
 def train_xgb(dfTr, features, output, hyperparams, num_trees):
@@ -120,13 +120,13 @@ if __name__ == "__main__" :
 
     # create needed folders
     indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1fullC2C3'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_C1fullC2C3_fullPUnoPt'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/PUrejection_C1fullC2C3_fullPUnoPt'
-    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_C1fullC2C3_fullPUnoPt'
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_C1fullC2C3_PUc1c2c3'
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/PUrejection_C1fullC2C3_PUc1c2c3'
+    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_C1fullC2C3_PUc1c2c3'
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_C1fullC2C3_fullPUnoPt/performance.log")
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_C1fullC2C3_PUc1c2c3/performance.log")
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
@@ -188,9 +188,10 @@ if __name__ == "__main__" :
     dfValidation_dict = {}
 
     # features for BDT training - FULL AVAILABLE
-    features = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    features = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3']
+    features = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    features = ['cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
 
-    features = ['cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_spptot', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_hoe', 'cl3d_meanz']
 
     output = 'sgnId'
 
@@ -263,8 +264,6 @@ if __name__ == "__main__" :
         dfQCDTr = dfTraining_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True').copy(deep=True)
         dfQCDVal = dfValidation_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True').copy(deep=True)
 
-        #dfTr = dfTraining_dict[name].query('sgnId==1 or (sgnId==0 and gentau_decayMode!=-2)').copy(deep=True)    # take all the taus and all the PU not coming from QCD sample
-        #dfVal = dfValidation_dict[name].query('sgnId==1 or (sgnId==0 and gentau_decayMode!=-2)').copy(deep=True) # "
         dfTr = dfTraining_dict[name].query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
         dfVal = dfValidation_dict[name].query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
 
@@ -291,9 +290,8 @@ if __name__ == "__main__" :
 
         # print some info about the WP and FPR at different sgn efficiency levels
         print('\n**INFO: BDT WP for: 0.99 sgn efficiency {0} -  0.95 sgn efficiency {1} -  0.90 sgn efficiency {2}'.format(bdtWP99_dict[name], bdtWP95_dict[name], bdtWP90_dict[name]))
-        print('\n**INFO: tarin bkg efficiency at: 0.99 sgn efficiency {0} -  0.95 sgn efficiency {1} -  0.90 sgn efficiency {2}'.format(np.interp(0.99, tpr_train_dict[name], fpr_train_dict[name]),np.interp(0.95, tpr_train_dict[name], fpr_train_dict[name]),np.interp(0.90, tpr_train_dict[name], fpr_train_dict[name])))
+        print('\n**INFO: train bkg efficiency at: 0.99 sgn efficiency {0} -  0.95 sgn efficiency {1} -  0.90 sgn efficiency {2}'.format(np.interp(0.99, tpr_train_dict[name], fpr_train_dict[name]),np.interp(0.95, tpr_train_dict[name], fpr_train_dict[name]),np.interp(0.90, tpr_train_dict[name], fpr_train_dict[name])))
         print('**INFO: test bkg efficiency at: 0.99 sgn efficiency {0} -  0.95 sgn efficiency {1} -  0.90 sgn efficiency {2}'.format(np.interp(0.99, tpr_test_dict[name], fpr_test_dict[name]),np.interp(0.95, tpr_test_dict[name], fpr_test_dict[name]),np.interp(0.90, tpr_test_dict[name], fpr_test_dict[name])))
-
 
         ######################### VALIDATION OF BDT #########################
 
@@ -345,6 +343,8 @@ if __name__ == "__main__" :
         dfQCDVal['cl3d_pubdt_passWP95'] = dfQCDVal['cl3d_pubdt_score'] > bdtWP95_dict[name]
         dfQCDVal['cl3d_pubdt_passWP90'] = dfQCDVal['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
+        ######################### OVERALL EFFICIENCIES #########################
+
         QCDtot = pd.concat([dfQCDTr,dfQCDVal],sort=False)
         QCD99 = QCDtot.query('cl3d_pubdt_passWP99==True')
         QCD95 = QCDtot.query('cl3d_pubdt_passWP95==True')
@@ -355,8 +355,7 @@ if __name__ == "__main__" :
         print('  -- number of QCD events passing WP95: {0}%'.format(round(float(QCD95['cl3d_pubdt_passWP95'].count())/float(QCDtot['cl3d_pubdt_passWP95'].count())*100,2)))
         print('  -- number of QCD events passing WP90: {0}%'.format(round(float(QCD90['cl3d_pubdt_passWP90'].count())/float(QCDtot['cl3d_pubdt_passWP90'].count())*100,2)))
 
-
-        ######################### OVERALL EFFICIENCIES OF BKG REJECTION #########################
+        del QCDtot, QCD90, QCD95, QCD99
 
         TOT = pd.concat([dfTraining_dict[name],dfValidation_dict[name]],sort=False).query('cl3d_isbestmatch==False')
         TOT99 = TOT.query('cl3d_isbestmatch==False and cl3d_pubdt_passWP99==True').copy(deep=True)
@@ -368,6 +367,19 @@ if __name__ == "__main__" :
         print('     at 0.95 sgn efficiency: {0}%'.format(round(float(TOT95.shape[0])/float(TOT.shape[0])*100,2)))
         print('     at 0.90 sgn efficiency: {0}%'.format(round(float(TOT90.shape[0])/float(TOT.shape[0])*100,2)))
 
+        del TOT, TOT90, TOT95, TOT99
+
+        TOT = pd.concat([dfTraining_dict[name],dfValidation_dict[name]],sort=False).query('sgnId==1 and cl3d_pt>=30')
+        TOT99 = TOT.query('cl3d_pubdt_passWP99==True').copy(deep=True)
+        TOT95 = TOT.query('cl3d_pubdt_passWP95==True').copy(deep=True)
+        TOT90 = TOT.query('cl3d_pubdt_passWP90==True').copy(deep=True)
+
+        print('\nOVERALL SGN EFFICIENCIES FOR cl3d_pt>30GeV:')
+        print('     at 0.99 sgn efficiency: {0}%'.format(round(float(TOT99.shape[0])/float(TOT.shape[0])*100,2)))
+        print('     at 0.95 sgn efficiency: {0}%'.format(round(float(TOT95.shape[0])/float(TOT.shape[0])*100,2)))
+        print('     at 0.90 sgn efficiency: {0}%'.format(round(float(TOT90.shape[0])/float(TOT.shape[0])*100,2)))
+
+        del TOT, TOT90, TOT95, TOT99
 
         ######################### SAVE FILES #########################
 

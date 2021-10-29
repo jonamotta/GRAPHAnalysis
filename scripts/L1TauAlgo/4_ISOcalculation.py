@@ -75,7 +75,8 @@ def IsoCalculation(dfTr, dfVal, dfTowers, mode='candidate'):
         dfTr.reset_index(inplace=True)
         dfL1CandidatesTr = dfTr.query('cl3d_pubdt_passWP99==True').copy(deep=True) # selecting WP 99 we select also 95 and 90
         dfL1CandidatesTr.sort_values('cl3d_pt_c3', inplace=True)
-        dfL1CandidatesTr.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
+        #dfL1CandidatesTr.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
+        dfL1CandidatesTr = dfL1CandidatesTr.groupby('event').tail(5).copy(deep=True) # keep only the 5 highest pt cluster
         sel = dfTr['cl3d_pt_c3'].isin(dfL1CandidatesTr['cl3d_pt_c3'])
         dfL1ass2candTr = dfTr.drop(dfTr[sel].index)
         dfL1CandidatesTr.set_index('event', inplace=True)
@@ -86,7 +87,8 @@ def IsoCalculation(dfTr, dfVal, dfTowers, mode='candidate'):
         dfVal.reset_index(inplace=True)
         dfL1CandidatesVal = dfVal.query('cl3d_pubdt_passWP99==True').copy(deep=True) # selecting WP 99 we select also 95 and 90
         dfL1CandidatesVal.sort_values('cl3d_pt_c3', inplace=True)
-        dfL1CandidatesVal.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
+        #dfL1CandidatesVal.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
+        dfL1CandidatesVal = dfL1CandidatesVal.groupby('event').tail(5).copy(deep=True) # keep only the 5 highest pt cluster
         sel = dfVal['cl3d_pt_c3'].isin(dfL1CandidatesVal['cl3d_pt_c3'])
         dfL1ass2candVal = dfVal.drop(dfVal[sel].index)
         dfL1CandidatesVal.set_index('event', inplace=True)
@@ -154,9 +156,6 @@ if __name__ == "__main__" :
     # dictionary of front-end options
     feNames_dict = {
         'threshold'    : 'Threshold',
-        'supertrigger' : 'Super Trigger Cell',
-        'bestchoice'   : 'BestChoice',
-        'bestcoarse'   : 'BestChoiceCoarse',
         'mixed'        : 'Mixed BC+STC',  
     }
 
@@ -169,73 +168,58 @@ if __name__ == "__main__" :
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
         'threshold'    : indir+'/Training_PU200_th_PUrejected.hdf5',
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     inFileValidation_dict = {
         'threshold'    : indir+'/Validation_PU200_th_PUrejected.hdf5',
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     inFileHHTowers_dict = {
         'threshold'    : matchdir+'/GluGluHHTo2b2Tau_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     inFileTenTauTowers_dict = {
         'threshold'    : matchdir+'/RelValTenTau_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     inFileSingleTauTowers_dict = {
         'threshold'    : matchdir+'/RelValSingleTau_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
+        'mixed'        : matchdir+'/'
+    }
+
+    inFileVBFHTowers_dict = {
+        'threshold'    : matchdir+'/VBFHToTauTau_PU200_th_towers.hdf5',
+        'mixed'        : matchdir+'/'
+    }
+
+    inFileZprimeTowers_dict = {
+        'threshold'    : matchdir+'/ZprimeToTauTau_PU200_th_towers.hdf5',
         'mixed'        : matchdir+'/'
     }
 
     inFileQCDTowers_dict = {
         'threshold'    : matchdir+'/QCD_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     inFileNuTowers_dict = {
         'threshold'    : matchdir+'/RelValNu_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     outFileTraining_dict = {
         'threshold'    : outdir+'/Training_PU200_th_isoCalculated.hdf5',
         'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
     outFileValidation_dict = {
         'threshold'    : outdir+'/Validation_PU200_th_isoCalculated.hdf5',
         'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
@@ -250,7 +234,7 @@ if __name__ == "__main__" :
         if not name in args.FE: continue # skip the front-end options that we do not want to do
             
         print('---------------------------------------------------------------------------------------')
-        print('** INFO: starting DM sorting for the front-end option '+feNames_dict[name])
+        print('** INFO: starting calculation of isolation variables for the front-end option '+feNames_dict[name])
 
         store_tr = pd.HDFStore(inFileTraining_dict[name], mode='r')
         dfTraining_dict[name] = store_tr[name]
@@ -272,6 +256,14 @@ if __name__ == "__main__" :
         dfSingleTauTowers = store[name]
         store.close()
 
+        store = pd.HDFStore(inFileVBFHTowers_dict[name], mode='r')
+        dfVBFHTowers = store[name]
+        store.close()
+
+        store = pd.HDFStore(inFileZprimeTowers_dict[name], mode='r')
+        dfZprimeTowers = store[name]
+        store.close()
+
         store = pd.HDFStore(inFileQCDTowers_dict[name], mode='r')
         dfQCDTowers = store[name]
         store.close()
@@ -284,35 +276,45 @@ if __name__ == "__main__" :
         ######################### SELECT EVENTS FOR TRAINING #########################  
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - HH dataset ')
-        dfHHTr = dfTraining_dict[name].query('dataset==0').copy(deep=True)
-        dfHHVal = dfValidation_dict[name].query('dataset==0').copy(deep=True)
+        dfHHTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('hh') ].copy(deep=True)
+        dfHHVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('hh') ].copy(deep=True)
         dfHHOutTr, dfHHOutVal = IsoCalculation(dfHHTr, dfHHVal, dfHHTowers)
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - TenTau dataset ')
-        dfTenTauTr = dfTraining_dict[name].query('dataset==1').copy(deep=True)
-        dfTenTauVal = dfValidation_dict[name].query('dataset==1').copy(deep=True)
+        dfTenTauTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('tentau') ].copy(deep=True)
+        dfTenTauVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('tentau') ].copy(deep=True)
         dfTenTauOutTr, dfTenTauOutVal = IsoCalculation(dfTenTauTr, dfTenTauVal, dfTenTauTowers)
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - SingleTau dataset ')
-        dfSingleTauTr = dfTraining_dict[name].query('dataset==2').copy(deep=True)
-        dfSingleTauVal = dfValidation_dict[name].query('dataset==2').copy(deep=True)
+        dfSingleTauTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('singtau') ].copy(deep=True)
+        dfSingleTauVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('singtau') ].copy(deep=True)
         dfSingleTauOutTr, dfSingleTauOutVal = IsoCalculation(dfSingleTauTr, dfSingleTauVal, dfSingleTauTowers)
 
+        print('\n** INFO: calculating eT Iso for L1Tau candidates - VBFH dataset ')
+        dfVBFHTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('vbfh') ].copy(deep=True)
+        dfVBFHVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('vbfh') ].copy(deep=True)
+        dfVBFHOutTr, dfVBFHOutVal = IsoCalculation(dfVBFHTr, dfVBFHVal, dfVBFHTowers)
+
+        print('\n** INFO: calculating eT Iso for L1Tau candidates - Zprime dataset ')
+        dfZprimeTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('zprime') ].copy(deep=True)
+        dfZprimeVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('zprime') ].copy(deep=True)
+        dfZprimeOutTr, dfZprimeOutVal = IsoCalculation(dfZprimeTr, dfZprimeVal, dfZprimeTowers)
+
         print('\n** INFO: calculating eT Iso for L1Tau candidates - QCD dataset ')
-        dfQCDTr = dfTraining_dict[name].query('dataset==3').copy(deep=True)
-        dfQCDVal = dfValidation_dict[name].query('dataset==3').copy(deep=True)
+        dfQCDTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('qcd') ].copy(deep=True)
+        dfQCDVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('qcd') ].copy(deep=True)
         dfQCDOutTr, dfQCDOutVal = IsoCalculation(dfQCDTr, dfQCDVal, dfQCDTowers)
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - Nu dataset ')
-        dfNuTr = dfTraining_dict[name].query('dataset==4').copy(deep=True)
-        dfNuVal = dfValidation_dict[name].query('dataset==4').copy(deep=True)
+        dfNuTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('nu') ].copy(deep=True)
+        dfNuVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('nu') ].copy(deep=True)
         dfNuOutTr, dfNuOutVal = IsoCalculation(dfNuTr, dfNuVal, dfNuTowers, mode='Nu')
 
         
         ######################### SAVE FILES #########################
 
-        dfTraining_dict[name] = pd.concat([dfHHOutTr, dfTenTauOutTr, dfSingleTauOutTr, dfQCDOutTr, dfNuOutTr], sort=False)
-        dfValidation_dict[name] = pd.concat([dfHHOutVal, dfTenTauOutVal, dfSingleTauOutVal, dfQCDOutVal, dfNuOutVal], sort=False)
+        dfTraining_dict[name] = pd.concat([dfHHOutTr, dfTenTauOutTr, dfSingleTauOutTr, dfVBFHOutTr, dfZprimeOutTr, dfQCDOutTr, dfNuOutTr], sort=False)
+        dfValidation_dict[name] = pd.concat([dfHHOutVal, dfTenTauOutVal, dfSingleTauOutVal, dfVBFHVal, dfZprimeVal, dfQCDOutVal, dfNuOutVal], sort=False)
 
         store_tr = pd.HDFStore(outFileTraining_dict[name], mode='w')
         store_tr[name] = dfTraining_dict[name]
@@ -322,8 +324,8 @@ if __name__ == "__main__" :
         store_val[name] = dfValidation_dict[name]
         store_val.close()
 
-
-
+        print('** INFO: finished calculation of isolation variables for the front-end option '+feNames_dict[name])
+        print('---------------------------------------------------------------------------------------')
 
 
 

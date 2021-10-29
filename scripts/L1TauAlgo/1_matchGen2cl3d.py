@@ -62,11 +62,7 @@ def taumatching( df_cl3d, df_gen, deta, dphi, dR ):
                 if temp['cl3d_pt'][idx] == df_joined['cl3d_pt'][i]: df_joined.loc[i,'cl3d_isbestmatch'] = True
         del temp # for safety delete temp every time
 
-    df_joined.set_index('event', inplace=True)
-    df_joined_PU.set_index('event', inplace=True)
-
     dfOut = pd.concat([df_joined, df_joined_PU], sort=False)
-    dfOut.sort_values('event', inplace=True)
 
     return dfOut
 
@@ -111,11 +107,7 @@ def jetmatching( df_cl3d, df_gen, deta, dphi, dR ):
                 if temp['cl3d_pt'][idx] == df_joined['cl3d_pt'][i]: df_joined.loc[i,'cl3d_isbestmatch'] = True
         del temp # for safety delete temp every time
 
-    df_joined.set_index('event', inplace=True)
-    df_joined_PU.set_index('event', inplace=True)
-
     dfOut = pd.concat([df_joined, df_joined_PU], sort=False)
-    dfOut.sort_values('event', inplace=True)
 
     return dfOut
 
@@ -138,8 +130,11 @@ if __name__ == "__main__" :
     parser.add_argument('--doTenTau', dest='doTenTau', help='match the TenTau samples?',  action='store_true', default=False)
     parser.add_argument('--doNu', dest='doNu', help='match the Nu samples?',  action='store_true', default=False)
     parser.add_argument('--doQCD', dest='doQCD', help='match the QCD samples?',  action='store_true', default=False)
+    parser.add_argument('--doZprime', dest='doZprime', help="match the Z' samples?",  action='store_true', default=False)
+    parser.add_argument('--doVBFH', dest='doVBFH', help='match the VBF H samples?',  action='store_true', default=False)
     parser.add_argument('--doTrainValid', dest='doTrainValid', help='build merged training/validation datasets?',  action='store_true', default=False)
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
+    parser.add_argument('--ptcut', dest='ptcut', help='baseline 3D cluster pT cut to use', default='-99')
     parser.add_argument('--testRun', dest='testRun', help='do test run with reduced number of events?',  action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
@@ -155,168 +150,154 @@ if __name__ == "__main__" :
         print('** EXITING')
         exit()
 
+    if args.ptcut == '-99':
+        print('** INFO: no baseline pT cut specified to be used for training and validation')
+        print('** INFO: using default cut pT>4GeV')
+        args.ptcut = '4'
+
     if args.doTrainValid:
         args.doTenTau = True
         args.doSingleTau = True
         args.doHH = True
+        args.doZprime = True
+        args.doVBFH = True
         args.doNu = True
         args.doQCD = True
 
     ##################### DEFINE HANDLING DICTIONARIES ####################
 
     # define the input and output dictionaries for the handling of different datasets
-    indir   = '/data_CMS_upgrade/motta/HGCAL_SKIMS/SKIM_12May2021'
+    indir   = '/data_CMS_upgrade/motta/HGCAL_SKIMS/SKIM_2021_05_12'
+    indir2  = '/data_CMS_upgrade/motta/HGCAL_SKIMS/SKIM_2021_10_11'
     outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched'
     os.system('mkdir -p '+outdir)
 
     # dictionary of front-end options
     feNames_dict = {
         'threshold'    : 'Threshold',
-        'supertrigger' : 'Super Trigger Cell',
-        'bestchoice'   : 'BestChoice',
-        'bestcoarse'   : 'BestChoiceCoarse',
         'mixed'        : 'Mixed BC+STC',  
     }
 
     if args.doHH:
         inFileHH_dict = {
             'threshold'    : indir+'/SKIM_GluGluHHTo2b2Tau_PU200/mergedOutput.root',
-            'supertrigger' : indir+'/',
-            'bestchoice'   : indir+'/',
-            'bestcoarse'   : indir+'/',
             'mixed'        : indir+'/'
         }        
 
         outFileHH_dict = {
             'threshold'    : outdir+'/GluGluHHTo2b2Tau_PU200_th_matched.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
         outFileHH_towers = {
             'threshold'    : outdir+'/GluGluHHTo2b2Tau_PU200_th_towers.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
     if args.doTenTau:
         inFileTenTau_dict = {
             'threshold'    : indir+'/SKIM_RelValTenTau_PU200/mergedOutput.root',
-            'supertrigger' : indir+'/',
-            'bestchoice'   : indir+'/',
-            'bestcoarse'   : indir+'/',
             'mixed'        : indir+'/'
         }
 
         outFileTenTau_dict = {
             'threshold'    : outdir+'/RelValTenTau_PU200_th_matched.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
         outFileTenTau_towers = {
             'threshold'    : outdir+'/RelValTenTau_PU200_th_towers.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
     if args.doSingleTau:
         inFileSingleTau_dict = {
             'threshold'    : indir+'/SKIM_RelValSingleTau_PU200/mergedOutput.root',
-            'supertrigger' : indir+'/',
-            'bestchoice'   : indir+'/',
-            'bestcoarse'   : indir+'/',
             'mixed'        : indir+'/'
         }
 
         outFileSingleTau_dict = {
             'threshold'    : outdir+'/RelValSingleTau_PU200_th_matched.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
         outFileSingleTau_towers = {
             'threshold'    : outdir+'/RelValSingleTau_PU200_th_towers.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
     if args.doNu:
         inFileNu_dict = {
             'threshold'    : indir+'/SKIM_RelValNu_PU200/mergedOutput.root',
-            'supertrigger' : indir+'/',
-            'bestchoice'   : indir+'/',
-            'bestcoarse'   : indir+'/',
             'mixed'        : indir+'/'
         }   
 
         outFileNu_dict = {
             'threshold'    : outdir+'/RelValNu_PU200_th_matched.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
         outFileNu_towers = {
             'threshold'    : outdir+'/RelValNu_PU200_th_towers.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
  
     if args.doQCD:
         inFileQCD_dict = {
             'threshold'    : indir+'/SKIM_RelValQCD_PU200/mergedOutput.root',
-            'supertrigger' : indir+'/',
-            'bestchoice'   : indir+'/',
-            'bestcoarse'   : indir+'/',
             'mixed'        : indir+'/'
         }
 
         outFileQCD_dict = {
             'threshold'    : outdir+'/QCD_PU200_th_matched.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
         outFileQCD_towers = {
             'threshold'    : outdir+'/QCD_PU200_th_towers.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
+            'mixed'        : outdir+'/'
+        }
+
+    if args.doZprime:
+        inFileZprime_dict = {
+            'threshold'    : indir2+'/SKIM_ZprimeTauTau_PU200/mergedOutput.root',
+            'mixed'        : indir2+'/'
+        }
+
+        outFileZprime_dict = {
+            'threshold'    : outdir+'/ZprimeToTauTau_PU200_th_matched.hdf5',
+            'mixed'        : outdir+'/'
+        }
+
+        outFileZprime_towers = {
+            'threshold'    : outdir+'/ZprimeToTauTau_PU200_th_towers.hdf5',
+            'mixed'        : outdir+'/'
+        }
+
+    if args.doVBFH:
+        inFileVBFH_dict = {
+            'threshold'    : indir2+'/SKIM_VBFHToTauTau_PU200/mergedOutput.root',
+            'mixed'        : indir2+'/'
+        }
+
+        outFileVBFH_dict = {
+            'threshold'    : outdir+'/VBFHToTauTau_PU200_th_matched.hdf5',
+            'mixed'        : outdir+'/'
+        }
+
+        outFileVBFH_towers = {
+            'threshold'    : outdir+'/VBFHToTauTau_PU200_th_towers.hdf5',
             'mixed'        : outdir+'/'
         }
 
     if args.doTrainValid:
         outFileTraining_dict = {
             'threshold'    : outdir+'/Training_PU200_th_matched.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
         outFileValidation_dict = {
             'threshold'    : outdir+'/Validation_PU200_th_matched.hdf5',
-            'supertrigger' : outdir+'/',
-            'bestchoice'   : outdir+'/',
-            'bestcoarse'   : outdir+'/',
             'mixed'        : outdir+'/'
         }
 
@@ -355,25 +336,29 @@ if __name__ == "__main__" :
             df_cl3d = root_pandas.read_root(inFileHH_dict[name], key=treename, columns=branches_event_cl3d, flatten=branches_cl3d)
             df_gentau = root_pandas.read_root(inFileHH_dict[name], key=treename, columns=branches_event_gentau, flatten=branches_gentau)
             dfHH_towers = root_pandas.read_root(inFileHH_dict[args.FE], key=treename, columns=branches_event_towers, flatten=branches_towers)
-            
-            df_cl3d['event'] += 18000    # here we need to make sure we are not overlapping the 'events' columns of HH, TenTau, and SingleTau!!!
-            df_gentau['event'] += 18000  # "
-            dfHH_towers['event'] += 18000  # "
 
             df_cl3d.drop('__array_index', inplace=True, axis=1)
             df_gentau.drop('__array_index', inplace=True, axis=1)
             dfHH_towers.drop('__array_index', inplace=True, axis=1)
-            dfHH_towers.set_index('event', inplace=True)
-            dfHH_towers.sort_values('event', inplace=True)
 
             if args.testRun:
-                df_cl3d.query('event<18010', inplace=True)
-                df_gentau.query('event<18010', inplace=True)
-                dfHH_towers.query('event<18010', inplace=True)
+                df_cl3d.query('event<100', inplace=True)
+                df_gentau.query('event<100', inplace=True)
+                dfHH_towers.query('event<100', inplace=True)
 
             print('** INFO: matching gentaus for ' + inFileHH_dict[name])
             dfHH = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
-            dfHH['dataset'] = 0 # tag the dataset it came from            
+            dfHH['sgnId'] = dfHH.apply(lambda row: prepareCat(row), axis=1)
+            dfHH['cl3d_abseta'] = np.abs(dfHH['cl3d_eta'])
+            dfHH.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
+
+            # here we need to make sure we are not overlapping the 'events' columns
+            dfHH['event'] = 'HH' + dfHH['event'].astype(str)
+            dfHH.set_index('event', inplace=True)
+            dfHH.sort_values('event', inplace=True)
+            dfHH_towers['event'] = 'HH' + dfHH_towers['event'].astype(str)
+            dfHH_towers.set_index('event', inplace=True)
+            dfHH_towers.sort_values('event', inplace=True)
 
             print('** INFO: saving file ' + outFileHH_dict[name])
             store_hh = pd.HDFStore(outFileHH_dict[name], mode='w')
@@ -385,7 +370,7 @@ if __name__ == "__main__" :
             store_towers[args.FE] = dfHH_towers
             store_towers.close()
 
-            del df_cl3d, df_gentau
+            del df_cl3d, df_gentau, dfHH_towers
 
         if args.doTenTau:
             # define delta eta, delta phi, amd delta R to be used for the matching
@@ -402,17 +387,25 @@ if __name__ == "__main__" :
             df_cl3d.drop('__array_index', inplace=True, axis=1)
             df_gentau.drop('__array_index', inplace=True, axis=1)
             dfTenTau_towers.drop('__array_index', inplace=True, axis=1)
-            dfTenTau_towers.set_index('event', inplace=True)
-            dfTenTau_towers.sort_values('event', inplace=True)
 
             if args.testRun:
-                df_cl3d.query('event<10', inplace=True)
-                df_gentau.query('event<10', inplace=True)
-                dfTenTau_towers.query('event<10', inplace=True)
+                df_cl3d.query('event<50', inplace=True)
+                df_gentau.query('event<50', inplace=True)
+                dfTenTau_towers.query('event<50', inplace=True)
 
             print('** INFO: matching gentaus for ' + inFileTenTau_dict[name])
             dfTenTau = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
-            dfTenTau['dataset'] = 1 # tag the dataset it came from
+            dfTenTau['sgnId'] = dfTenTau.apply(lambda row: prepareCat(row), axis=1)
+            dfTenTau['cl3d_abseta'] = np.abs(dfTenTau['cl3d_eta'])
+            dfTenTau.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
+
+            # here we need to make sure we are not overlapping the 'events' columns
+            dfTenTau['event'] = 'tentau' + dfTenTau['event'].astype(str)
+            dfTenTau.set_index('event', inplace=True)
+            dfTenTau.sort_values('event', inplace=True)
+            dfTenTau_towers['event'] = 'tentau' + dfTenTau_towers['event'].astype(str)
+            dfTenTau_towers.set_index('event', inplace=True)
+            dfTenTau_towers.sort_values('event', inplace=True)
 
             print('** INFO: saving file ' + outFileTenTau_dict[name])
             store_tau = pd.HDFStore(outFileTenTau_dict[name], mode='w')
@@ -424,7 +417,7 @@ if __name__ == "__main__" :
             store_towers[args.FE] = dfTenTau_towers
             store_towers.close()
 
-            del df_cl3d, df_gentau
+            del df_cl3d, df_gentau, dfTenTau_towers
 
         if args.doSingleTau:
             # define delta eta, delta phi, amd delta R to be used for the matching
@@ -432,30 +425,34 @@ if __name__ == "__main__" :
             dphi_matching = 0.2
             dr_matching = 0.1
 
-            # fill the dataframes with the needed info from the branches defined above for the SINGLETAU
+            # fill the dataframes with the needed info from the branches defined above for the SingleTau
             print('\n** INFO: creating dataframes for ' + inFileSingleTau_dict[name]) 
             df_cl3d = root_pandas.read_root(inFileSingleTau_dict[name], key=treename, columns=branches_event_cl3d, flatten=branches_cl3d)
             df_gentau = root_pandas.read_root(inFileSingleTau_dict[name], key=treename, columns=branches_event_gentau, flatten=branches_gentau)
             dfSingleTau_towers = root_pandas.read_root(inFileSingleTau_dict[args.FE], key=treename, columns=branches_event_towers, flatten=branches_towers)
 
-            df_cl3d['event'] += 9000    # here we need to make sure we are not overlapping the 'events' columns of HH, TenTau, and SingleTau!!!
-            df_gentau['event'] += 9000  # "
-            dfSingleTau_towers['event'] += 9000  # "
-
             df_cl3d.drop('__array_index', inplace=True, axis=1)
             df_gentau.drop('__array_index', inplace=True, axis=1)
             dfSingleTau_towers.drop('__array_index', inplace=True, axis=1)
-            dfSingleTau_towers.set_index('event', inplace=True)
-            dfSingleTau_towers.sort_values('event', inplace=True)
 
             if args.testRun:
-                df_cl3d.query('event<10', inplace=True)
-                df_gentau.query('event<10', inplace=True)
-                dfSingleTau_towers.query('event<9050', inplace=True)
+                df_cl3d.query('event<100', inplace=True)
+                df_gentau.query('event<100', inplace=True)
+                dfSingleTau_towers.query('event<100', inplace=True)
 
             print('** INFO: matching gentaus for ' + inFileSingleTau_dict[name])
             dfSingleTau = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
-            dfSingleTau['dataset'] = 2 # tag the dataset it came from
+            dfSingleTau['sgnId'] = dfSingleTau.apply(lambda row: prepareCat(row), axis=1)
+            dfSingleTau['cl3d_abseta'] = np.abs(dfSingleTau['cl3d_eta'])
+            dfSingleTau.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
+
+            # here we need to make sure we are not overlapping the 'events' columns
+            dfSingleTau['event'] = 'singletau' + dfSingleTau['event'].astype(str)
+            dfSingleTau.set_index('event', inplace=True)
+            dfSingleTau.sort_values('event', inplace=True)
+            dfSingleTau_towers['event'] = 'singletau' + dfSingleTau_towers['event'].astype(str)
+            dfSingleTau_towers.set_index('event', inplace=True)
+            dfSingleTau_towers.sort_values('event', inplace=True)
 
             print('** INFO: saving file ' + outFileSingleTau_dict[name])
             store_tau = pd.HDFStore(outFileSingleTau_dict[name], mode='w')
@@ -467,7 +464,103 @@ if __name__ == "__main__" :
             store_towers[args.FE] = dfSingleTau_towers
             store_towers.close()
 
-            del df_cl3d, df_gentau
+            del df_cl3d, df_gentau, dfSingleTau_towers
+
+        if args.doVBFH:
+            # define delta eta, delta phi, amd delta R to be used for the matching
+            deta_matching = 0.1
+            dphi_matching = 0.2
+            dr_matching = 0.1
+
+            # fill the dataframes with the needed info from the branches defined above for the VBFH
+            print('\n** INFO: creating dataframes for ' + inFileVBFH_dict[name]) 
+            df_cl3d = root_pandas.read_root(inFileVBFH_dict[name], key=treename, columns=branches_event_cl3d, flatten=branches_cl3d)
+            df_gentau = root_pandas.read_root(inFileVBFH_dict[name], key=treename, columns=branches_event_gentau, flatten=branches_gentau)
+            dfVBFH_towers = root_pandas.read_root(inFileVBFH_dict[args.FE], key=treename, columns=branches_event_towers, flatten=branches_towers)
+
+            df_cl3d.drop('__array_index', inplace=True, axis=1)
+            df_gentau.drop('__array_index', inplace=True, axis=1)
+            dfVBFH_towers.drop('__array_index', inplace=True, axis=1)
+
+            if args.testRun:
+                df_cl3d.query('event<100', inplace=True)
+                df_gentau.query('event<100', inplace=True)
+                dfVBFH_towers.query('event<100', inplace=True)
+
+            print('** INFO: matching gentaus for ' + inFileVBFH_dict[name])
+            dfVBFH = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
+            dfVBFH['sgnId'] = dfVBFH.apply(lambda row: prepareCat(row), axis=1)
+            dfVBFH.query('sgnId==1', inplace=True)
+            dfVBFH['cl3d_abseta'] = np.abs(dfVBFH['cl3d_eta'])
+            dfVBFH.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
+
+            # here we need to make sure we are not overlapping the 'events' columns
+            dfVBFH['event'] = 'vbfh' + dfVBFH['event'].astype(str)
+            dfVBFH.set_index('event', inplace=True)
+            dfVBFH.sort_values('event', inplace=True)
+            dfVBFH_towers['event'] = 'vbfh' + dfVBFH_towers['event'].astype(str)
+            dfVBFH_towers.set_index('event', inplace=True)
+            dfVBFH_towers.sort_values('event', inplace=True)
+
+            print('** INFO: saving file ' + outFileVBFH_dict[name])
+            store_tau = pd.HDFStore(outFileVBFH_dict[name], mode='w')
+            store_tau[name] = dfVBFH
+            store_tau.close()
+
+            print('** INFO: saving file ' + outFileVBFH_towers[args.FE])
+            store_towers = pd.HDFStore(outFileVBFH_towers[args.FE], mode='w')
+            store_towers[args.FE] = dfVBFH_towers
+            store_towers.close()
+
+            del df_cl3d, df_gentau, dfVBFH_towers
+
+        if args.doZprime:
+            # define delta eta, delta phi, amd delta R to be used for the matching
+            deta_matching = 0.1
+            dphi_matching = 0.2
+            dr_matching = 0.1
+
+            # fill the dataframes with the needed info from the branches defined above for the Zprime
+            print('\n** INFO: creating dataframes for ' + inFileZprime_dict[name]) 
+            df_cl3d = root_pandas.read_root(inFileZprime_dict[name], key=treename, columns=branches_event_cl3d, flatten=branches_cl3d)
+            df_gentau = root_pandas.read_root(inFileZprime_dict[name], key=treename, columns=branches_event_gentau, flatten=branches_gentau)
+            dfZprime_towers = root_pandas.read_root(inFileZprime_dict[args.FE], key=treename, columns=branches_event_towers, flatten=branches_towers)
+
+            df_cl3d.drop('__array_index', inplace=True, axis=1)
+            df_gentau.drop('__array_index', inplace=True, axis=1)
+            dfZprime_towers.drop('__array_index', inplace=True, axis=1)
+
+            if args.testRun:
+                df_cl3d.query('event<100', inplace=True)
+                df_gentau.query('event<100', inplace=True)
+                dfZprime_towers.query('event<100', inplace=True)
+
+            print('** INFO: matching gentaus for ' + inFileZprime_dict[name])
+            dfZprime = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
+            dfZprime['sgnId'] = dfZprime.apply(lambda row: prepareCat(row), axis=1)
+            dfZprime.query('sgnId==1', inplace=True)
+            dfZprime['cl3d_abseta'] = np.abs(dfZprime['cl3d_eta'])
+            dfZprime.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
+
+            # here we need to make sure we are not overlapping the 'events' columns
+            dfZprime['event'] = 'zprime' + dfZprime['event'].astype(str)
+            dfZprime.set_index('event', inplace=True)
+            dfZprime.sort_values('event', inplace=True)
+            dfZprime_towers['event'] = 'zprime' + dfZprime_towers['event'].astype(str)
+            dfZprime_towers.set_index('event', inplace=True)
+            dfZprime_towers.sort_values('event', inplace=True)
+
+            print('** INFO: saving file ' + outFileZprime_dict[name])
+            store_tau = pd.HDFStore(outFileZprime_dict[name], mode='w')
+            store_tau[name] = dfZprime
+            store_tau.close()
+
+            print('** INFO: saving file ' + outFileZprime_towers[args.FE])
+            store_towers = pd.HDFStore(outFileZprime_towers[args.FE], mode='w')
+            store_towers[args.FE] = dfZprime_towers
+            store_towers.close()
+
+            del df_cl3d, df_gentau, dfZprime_towers
 
         if args.doQCD:
             # define delta eta, delta phi, and delta R to be used for the matching
@@ -481,25 +574,29 @@ if __name__ == "__main__" :
             df_genjet = root_pandas.read_root(inFileQCD_dict[name], key=treename, columns=branches_event_genjet, flatten=branches_genjet)
             dfQCD_towers = root_pandas.read_root(inFileQCD_dict[args.FE], key=treename, columns=branches_event_towers, flatten=branches_towers)
 
-            df_cl3d['event'] += 38000    # here we need to make sure we are not overlapping the 'events' columns of HH, TenTau, and SingleTau!!!
-            df_genjet['event'] += 38000  # "
-            dfQCD_towers['event'] += 38000  # "
-
             df_cl3d.drop('__array_index', inplace=True, axis=1)
             df_genjet.drop('__array_index', inplace=True, axis=1)
             dfQCD_towers.drop('__array_index', inplace=True, axis=1)
-            dfQCD_towers.set_index('event', inplace=True)
-            dfQCD_towers.sort_values('event', inplace=True)
 
             if args.testRun:
-                df_cl3d.query('event<40010', inplace=True)
-                df_genjet.query('event<40010', inplace=True)
-                dfQCD_towers.query('event<40100', inplace=True)
+                df_cl3d.query('event<30', inplace=True)
+                df_genjet.query('event<30', inplace=True)
+                dfQCD_towers.query('event<30', inplace=True)
 
             print('** INFO: matching gentaus for ' + inFileQCD_dict[name])
             dfQCD = jetmatching(df_cl3d, df_genjet, deta_matching, dphi_matching, dr_matching)
             dfQCD['gentau_decayMode'] = -2 # tag as QCD
-            dfQCD['dataset'] = 3 # tag the dataset it came from
+            dfQCD['sgnId'] = 0
+            dfQCD['cl3d_abseta'] = np.abs(dfQCD['cl3d_eta'])
+            dfQCD.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
+
+            # here we need to make sure we are not overlapping the 'events' columns
+            dfQCD['event'] = 'qcd' + dfQCD['event'].astype(str)
+            dfQCD.set_index('event', inplace=True)
+            dfQCD.sort_values('event', inplace=True)
+            dfQCD_towers['event'] = 'qcd' + dfQCD_towers['event'].astype(str)
+            dfQCD_towers.set_index('event', inplace=True)
+            dfQCD_towers.sort_values('event', inplace=True)
 
             print('** INFO: saving file ' + outFileQCD_dict[name])
             store_qcd = pd.HDFStore(outFileQCD_dict[name], mode='w')
@@ -511,22 +608,33 @@ if __name__ == "__main__" :
             store_towers[args.FE] = dfQCD_towers
             store_towers.close()
 
-            del df_cl3d, df_genjet
+            del df_cl3d, df_genjet, dfQCD_towers
 
         if args.doNu:
             # fill the dataframes with the needed info from the branches defined above for the NU
             print('\n** INFO: creating dataframes for ' + inFileNu_dict[name]) 
             dfNu = root_pandas.read_root(inFileNu_dict[name], key=treename, columns=branches_event_cl3d, flatten=branches_cl3d)
             dfNu_towers = root_pandas.read_root(inFileNu_dict[args.FE], key=treename, columns=branches_event_towers, flatten=branches_towers)
-            
-            dfNu['event'] += 200000 # here we need to make sure we are not overlapping the 'events' columns of HH, TenTau, SingleTau, and QCD!!!
-            dfNu_towers['event'] += 200000 # "
+
+            dfNu.drop('__array_index', inplace=True, axis=1)
+            dfNu_towers.drop('__array_index', inplace=True, axis=1)
+
+            if args.testRun:
+                dfNu.query('event<100', inplace=True)
+                dfNu_towers.query('event<100', inplace=True)
+
             dfNu['gentau_decayMode'] = -1 # tag as PU
             dfNu['geom_match'] = False
             dfNu['cl3d_isbestmatch'] = False
-            dfNu['dataset'] = 4 # tag the dataset it came from
-
-            dfNu.drop('__array_index', inplace=True, axis=1)
+            dfNu['sgnId'] = 0
+            dfNu['cl3d_abseta'] = np.abs(dfNu['cl3d_eta'])
+            dfNu.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
+            
+            # here we need to make sure we are not overlapping the 'events' columns
+            dfNu['event'] = 'nu' + dfNu['event'].astype(str)
+            dfNu.set_index('event', inplace=True)
+            dfNu.sort_values('event', inplace=True)
+            dfNu_towers['event'] = 'nu' + dfNu_towers['event'].astype(str)
             dfNu_towers.set_index('event', inplace=True)
             dfNu_towers.sort_values('event', inplace=True)
 
@@ -540,6 +648,8 @@ if __name__ == "__main__" :
             store_towers[args.FE] = dfNu_towers
             store_towers.close()
 
+            del dfNu_towers
+
         if args.doTrainValid:
             print('\n** INFO: creating dataframes for Training/Validation')
             print('** INFO: RelValTenTau Training/Validation')
@@ -551,24 +661,24 @@ if __name__ == "__main__" :
             print('** INFO: HH Training/Validation')
             dfHHTraining, dfHHValidation = train_test_split(dfHH, test_size=0.3)
 
+            print('** INFO: VBFH Training/Validation')
+            dfVBFHTraining, dfVBFHValidation = train_test_split(dfVBFH, test_size=0.3)
+
+            print('** INFO: Zprime Training/Validation')
+            dZprimeTraining, dZprimeValidation = train_test_split(dfZprime, test_size=0.3)
+
             print('** INFO: QCD Training/Validation')
             dfQCDTraining, dfQCDValidation = train_test_split(dfQCD, test_size=0.3)
 
             print('** INFO: RelValNu Training/Validation')
             dfNuTraining, dfNuValidation = train_test_split(dfNu, test_size=0.3)
 
-            dfNuTraining.set_index('event', inplace=True)
-            dfNuValidation.set_index('event', inplace=True)
-
             # MERGE
             print('** INFO: merging Training/Validation')
-            dfMergedTraining = pd.concat([dfTenTauTraining,dfSingleTauTraining,dfHHTraining,dfNuTraining,dfQCDTraining],sort=False)
-            dfMergedValidation = pd.concat([dfTenTauValidation,dfSingleTauValidation,dfHHValidation,dfNuValidation,dfQCDValidation],sort=False)
+            dfMergedTraining = pd.concat([dfTenTauTraining,dfSingleTauTraining,dfHHTraining,dfVBFHTraining,dZprimeTraining,dfNuTraining,dfQCDTraining],sort=False)
+            dfMergedValidation = pd.concat([dfTenTauValidation,dfSingleTauValidation,dfHHValidation,dfVBFHValidation,dZprimeValidation,dfNuValidation,dfQCDValidation],sort=False)
             dfMergedTraining.fillna(0.0, inplace=True)
             dfMergedValidation.fillna(0.0, inplace=True)
-
-            dfMergedTraining['sgnId'] = dfMergedTraining.apply(lambda row: prepareCat(row), axis=1)
-            dfMergedValidation['sgnId'] = dfMergedValidation.apply(lambda row: prepareCat(row), axis=1)
 
             # BIN PT AND ETA OF THE GENTAUS
             ptcut = 1
@@ -581,6 +691,11 @@ if __name__ == "__main__" :
             dfMergedTraining['gentau_bin_pt']  = ((dfMergedTraining['gentau_vis_pt'] - ptcut)/pt_binwidth).astype('int32')
             dfMergedValidation['gentau_bin_eta'] = ((dfMergedValidation['gentau_vis_abseta'] - etamin)/eta_binwidth).astype('int32')
             dfMergedValidation['gentau_bin_pt']  = ((dfMergedValidation['gentau_vis_pt'] - ptcut)/pt_binwidth).astype('int32')
+
+            # here we apply minimal requirements so that we are working in a fiducial region slightly smaller than the full HGCAL acceptance
+            # we apply the OR between tau, jet, and cluster requirements
+            dfMergedTraining.query('(cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))', inplace=True)
+            dfMergedValidation.query('(cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))', inplace=True)
 
             # SAVE
             print('** INFO: saving file ' + outFileTraining_dict[name])
@@ -599,30 +714,9 @@ if __name__ == "__main__" :
         if args.doTenTau: del dfTenTau
         if args.doSingleTau: del dfSingleTau
         if args.doNu: del dfNu
-        if args.doTrainValid: del dfMergedTraining, dfMergedValidation, dfHHTraining, dfHHValidation, dfTenTauTraining, dfTenTauValidation, dfSingleTauTraining, dfSingleTauValidation, dfQCDTraining, dfQCDValidation, dfNuTraining, dfNuValidation
+        if args.doTrainValid: del dfMergedTraining, dfMergedValidation, dfHHTraining, dfHHValidation, dfTenTauTraining, dfTenTauValidation, dfSingleTauTraining, dfSingleTauValidation, dfVBFHTraining, dZprimeTraining, dfVBFHValidation, dZprimeValidation, dfQCDTraining, dfQCDValidation, dfNuTraining, dfNuValidation
 
         print('\n** INFO: finished cluster matching for the front-end option '+feNames_dict[name])
         print('---------------------------------------------------------------------------------------')
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

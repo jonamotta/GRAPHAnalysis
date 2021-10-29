@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 import matplotlib
 import matplotlib.lines as mlines
 import argparse
+
 class Logger(object):
     def __init__(self,file):
         self.terminal = sys.stdout
@@ -72,7 +73,6 @@ if __name__ == "__main__" :
         print('** INFO: using default cut pT>4GeV')
         args.ptcut = '4'
 
-
     #################### INITIALIZATION OF ALL USEFUL VARIABLES AND DICTIONARIES ####################
 
     # dictionary of front-end options
@@ -87,6 +87,11 @@ if __name__ == "__main__" :
     plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/calibration_C1fullC2C3'
     model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/calibration_C1fullC2C3'
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
+
+    # set output to go both to terminal and to file
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/calibration_C1fullC2C3/performance.log")
+
+    print('** INFO: using baseline pT cut at {0}GeV\n'.format(args.ptcut))
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
@@ -213,7 +218,6 @@ if __name__ == "__main__" :
         dfTraining_dict[name].query('(cl3d_pt>{0} and cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))'.format(args.ptcut), inplace=True)
         dfValidation_dict[name].query('(cl3d_pt>{0} and cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))'.format(args.ptcut), inplace=True)
 
-        # for the actual training and validation we enforce the AND between jet and cluster requirements
         dfQCDTr = dfTraining_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True and (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9)))').copy(deep=True)
         dfQCDVal = dfValidation_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True and (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9)))').copy(deep=True)
 
@@ -466,14 +470,14 @@ if __name__ == "__main__" :
         dfTrainingDM10_dict[name] = dfTr.query('gentau_decayMode==10')
         dfTrainingDM11_dict[name] = dfTr.query('gentau_decayMode==11')
         dfTrainingPU_dict[name] = dfTraining_dict[name].query('gentau_decayMode==-1')
-        dfTrainingQCD_dict[name] = dfTraining_dict[name].query('gentau_decayMode==-2')
+        dfTrainingQCD_dict[name] = dfTraining_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True') # sk best match to get only what we really call QCD and nto the associated PU
 
         dfValidationDM0_dict[name] = dfVal.query('gentau_decayMode==0')
         dfValidationDM1_dict[name] = dfVal.query('gentau_decayMode==1')
         dfValidationDM10_dict[name] = dfVal.query('gentau_decayMode==10')
         dfValidationDM11_dict[name] = dfVal.query('gentau_decayMode==11')
         dfValidationPU_dict[name] = dfValidation_dict[name].query('gentau_decayMode==-1')
-        dfValidationQCD_dict[name] = dfValidation_dict[name].query('gentau_decayMode==-2')
+        dfValidationQCD_dict[name] = dfValidation_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True') # sk best match to get only what we really call QCD and nto the associated PU
 
         ######################### PLOT REULTS #########################
         
@@ -702,12 +706,12 @@ if __name__ == "__main__" :
 
             ######################### C1 DISTRIBUTIONS #########################
             plt.figure(figsize=(8,8))
-            plt.hist(dfValidationDM0_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM1_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM10_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM11_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
-            plt.hist(dfValidationPU_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
-            plt.hist(dfValidationQCD_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM0_dict[name]['cl3d_c1'],  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM1_dict[name]['cl3d_c1'],  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM10_dict[name]['cl3d_c1'],  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM11_dict[name]['cl3d_c1'],  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationPU_dict[name]['cl3d_c1'],  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationQCD_dict[name]['cl3d_c1'],  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
             plt.legend(loc = 'upper right', fontsize=15)
             plt.grid(linestyle=':')
             plt.xlabel(r'C1 factor value')
@@ -718,12 +722,12 @@ if __name__ == "__main__" :
             plt.close()
 
             plt.figure(figsize=(8,8))
-            plt.hist(dfTrainingDM0_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM1_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM10_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM11_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingPU_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingQCD_dict[name]['cl3d_c1'], bins=np.arange(0.5, 5., 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM0_dict[name]['cl3d_c1'],  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM1_dict[name]['cl3d_c1'],  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM10_dict[name]['cl3d_c1'],  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM11_dict[name]['cl3d_c1'],  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingPU_dict[name]['cl3d_c1'],  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingQCD_dict[name]['cl3d_c1'],  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
             plt.legend(loc = 'upper right', fontsize=15)
             plt.grid(linestyle=':')
             plt.xlabel(r'C1 factor value')
@@ -735,12 +739,12 @@ if __name__ == "__main__" :
 
             ######################### C2 DISTRIBUTIONS #########################
             plt.figure(figsize=(8,8))
-            plt.hist(dfValidationDM0_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM1_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM10_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM11_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
-            plt.hist(dfValidationPU_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
-            plt.hist(dfValidationQCD_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM0_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM1_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM10_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM11_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationPU_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationQCD_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
             plt.legend(loc = 'upper right', fontsize=15)
             plt.grid(linestyle=':')
             plt.xlabel(r'C2 factor value')
@@ -751,12 +755,12 @@ if __name__ == "__main__" :
             plt.close()
 
             plt.figure(figsize=(8,8))
-            plt.hist(dfTrainingDM0_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM1_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM10_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM11_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingPU_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingQCD_dict[name]['cl3d_c2'], bins=np.arange(0.5, 2.5, 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM0_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM1_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM10_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM11_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingPU_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingQCD_dict[name]['cl3d_c2'], bins=np.arange(0.5, 1.75, 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
             plt.legend(loc = 'upper right', fontsize=15)
             plt.grid(linestyle=':')
             plt.xlabel(r'C2 factor value')
@@ -768,12 +772,12 @@ if __name__ == "__main__" :
 
             ######################### C3 DISTRIBUTIONS #########################
             plt.figure(figsize=(8,8))
-            plt.hist(dfValidationDM0_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM1_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM10_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
-            plt.hist(dfValidationDM11_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
-            plt.hist(dfValidationPU_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
-            plt.hist(dfValidationQCD_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM0_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM1_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM10_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
+            plt.hist(dfValidationDM11_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationPU_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
+            plt.hist(dfValidationQCD_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
             plt.legend(loc = 'upper right', fontsize=15)
             plt.grid(linestyle=':')
             plt.xlabel(r'C3 factor value')
@@ -784,12 +788,12 @@ if __name__ == "__main__" :
             plt.close()
 
             plt.figure(figsize=(8,8))
-            plt.hist(dfTrainingDM0_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM1_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM10_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingDM11_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingPU_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
-            plt.hist(dfTrainingQCD_dict[name]['cl3d_c3'], bins=np.arange(0.75, 2., 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM0_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong', color='limegreen',    histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM1_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'1-prong + $\pi^0$', color='blue',    histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM10_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong', color='red',  histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingDM11_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'3-prong + $\pi^0$', color='fuchsia',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingPU_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'PU', color='orange',   histtype='step', lw=2, density=True)
+            plt.hist(dfTrainingQCD_dict[name]['cl3d_c3'], bins=np.arange(0.5, 2.5, 0.05),  label=r'QCD', color='black',   histtype='step', lw=2, density=True)
             plt.legend(loc = 'upper right', fontsize=15)
             plt.grid(linestyle=':')
             plt.xlabel(r'C3 factor value')
@@ -814,7 +818,8 @@ if __name__ == "__main__" :
         print('\n** INFO: finished energy calibration for the front-end option '+feNames_dict[name])
         print('---------------------------------------------------------------------------------------')
 
-
+# restore normal output
+sys.stdout = sys.__stdout__
 
 
 ###########

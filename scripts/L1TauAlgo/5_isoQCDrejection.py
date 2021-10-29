@@ -102,7 +102,7 @@ if __name__ == "__main__" :
     parser.add_argument('--PUWP', dest='PUWP', help='which PU working point do you want to use (90, 95, 99)?', default='90')
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--doEfficiency', dest='doEfficiency', help='do you want calculate the efficiencies?', action='store_true', default=False)
-    parser.add_argument('--effFitLimit', dest='effFitLimit', help='how many gentau_pt bins you wnat to consider for the fit of the turnON? (default: 33 bins = <102GeV)', default=33)
+    parser.add_argument('--effFitLimit', dest='effFitLimit', help='how many gentau_pt bins you want to consider for the fit of the turnON? (default: 49 bins = <150GeV)', default=49)
     # store parsed options
     args = parser.parse_args()
 
@@ -119,60 +119,42 @@ if __name__ == "__main__" :
     # dictionary of front-end options
     feNames_dict = {
         'threshold'    : 'Threshold',
-        'supertrigger' : 'Super Trigger Cell',
-        'bestchoice'   : 'BestChoice',
-        'bestcoarse'   : 'BestChoiceCoarse',
         'mixed'        : 'Mixed BC+STC',  
     }
 
     # create needed folders
     indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_C1fullC2C3_fullPUnoPt'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_C1fullC2C3_fullPUnoPt'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/isolation_C1fullC2C3_fullPUnoPt_PUWP{0}'.format(args.PUWP)
-    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_C1fullC2C3_fullPUnoPt_PUWP{0}'.format(args.PUWP)
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_C1fullC2C3_fullPUnoPt_fullISO'
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/isolation_C1fullC2C3_fullPUnoPt_fullISO'
+    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_C1fullC2C3_fullPUnoPt_fullISO'
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_C1fullC2C3_fullPUnoPt_PUWP{0}/performance.log".format(args.PUWP))
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_C1fullC2C3_fullPUnoPt_fullISO/performance_PUWP{0}.log".format(args.PUWP))
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
         'threshold'    : indir+'/Training_PU200_th_isoCalculated.hdf5',
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     inFileValidation_dict = {
         'threshold'    : indir+'/Validation_PU200_th_isoCalculated.hdf5',
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     outFileTraining_dict = {
         'threshold'    : outdir+'/Training_PU200_th_PUWP{0}_isoQCDrejected.hdf5'.format(args.PUWP),
-        'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
     outFileValidation_dict = {
         'threshold'    : outdir+'/Validation_PU200_th_PUWP{0}_isoQCDrejected.hdf5'.format(args.PUWP),
-        'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
     outFile_model_dict = {
         'threshold'    : model_outdir+'/model_isolation_PUWP{0}_th_PU200.pkl'.format(args.PUWP),
-        'supertrigger' : model_outdir+'/',
-        'bestchoice'   : model_outdir+'/',
-        'bestcoarse'   : model_outdir+'/',
         'mixed'        : model_outdir+'/'
     }
 
@@ -186,25 +168,16 @@ if __name__ == "__main__" :
 
     outFile_WP10_dict = {
         'threshold'    : model_outdir+'/WP10_isolation_PUWP{0}_th_PU200.pkl'.format(args.PUWP),
-        'supertrigger' : model_outdir+'/',
-        'bestchoice'   : model_outdir+'/',
-        'bestcoarse'   : model_outdir+'/',
         'mixed'        : model_outdir+'/'
     }
 
     outFile_WP05_dict = {
         'threshold'    : model_outdir+'/WP05_isolation_PUWP{0}_th_PU200.pkl'.format(args.PUWP),
-        'supertrigger' : model_outdir+'/',
-        'bestchoice'   : model_outdir+'/',
-        'bestcoarse'   : model_outdir+'/',
         'mixed'        : model_outdir+'/'
     }
 
     outFile_WP01_dict = {
         'threshold'    : model_outdir+'/WP01_isolation_PUWP{0}_th_PU200.pkl'.format(args.PUWP),
-        'supertrigger' : model_outdir+'/',
-        'bestchoice'   : model_outdir+'/',
-        'bestcoarse'   : model_outdir+'/',
         'mixed'        : model_outdir+'/'
     }
 
@@ -366,11 +339,13 @@ if __name__ == "__main__" :
         dfVal['cl3d_isobdt_passWP10'] = dfVal['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfVal['cl3d_isobdt_passWP15'] = dfVal['cl3d_isobdt_score'] > bdtWP15_dict[name]
 
-        QCDtot = pd.concat([dfTr.query('gentau_decayMode==-2'), dfVal.query('gentau_decayMode==-2')], sort=False)
-        QCD01 = QCDtot.query('cl3d_isobdt_passWP01==True')
-        QCD05 = QCDtot.query('cl3d_isobdt_passWP05==True')
-        QCD10 = QCDtot.query('cl3d_isobdt_passWP10==True')
-        QCD15 = QCDtot.query('cl3d_isobdt_passWP15==True')
+        ######################### PRINT OUT EFFICIENCIES #########################
+
+        QCDtot = pd.concat([dfTraining_dict[name].query('gentau_decayMode==-2'), dfValidation_dict[name].query('gentau_decayMode==-2')], sort=False)
+        QCD01 = QCDtot.query('cl3d_isobdt_passWP01==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        QCD05 = QCDtot.query('cl3d_isobdt_passWP05==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        QCD10 = QCDtot.query('cl3d_isobdt_passWP10==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        QCD15 = QCDtot.query('cl3d_isobdt_passWP15==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
 
         print('\n**INFO: QCD cluster passing the ISO QCD rejection:')
         print('  -- number of QCD events passing WP01: {0}%'.format(round(float(QCD01['cl3d_isobdt_passWP01'].count())/float(QCDtot['cl3d_isobdt_passWP01'].count())*100,2)))
@@ -378,11 +353,11 @@ if __name__ == "__main__" :
         print('  -- number of QCD events passing WP10: {0}%'.format(round(float(QCD10['cl3d_isobdt_passWP10'].count())/float(QCDtot['cl3d_isobdt_passWP10'].count())*100,2)))
         print('  -- number of QCD events passing WP15: {0}%'.format(round(float(QCD15['cl3d_isobdt_passWP15'].count())/float(QCDtot['cl3d_isobdt_passWP15'].count())*100,2)))
 
-        Nutot = pd.concat([dfTr.query('gentau_decayMode==-1'), dfVal.query('gentau_decayMode==-1')], sort=False)
-        Nu01 = Nutot.query('cl3d_isobdt_passWP01==True')
-        Nu05 = Nutot.query('cl3d_isobdt_passWP05==True')
-        Nu10 = Nutot.query('cl3d_isobdt_passWP10==True')
-        Nu15 = Nutot.query('cl3d_isobdt_passWP15==True')
+        Nutot = pd.concat([dfTraining_dict[name].query('gentau_decayMode==-1'), dfValidation_dict[name].query('gentau_decayMode==-1')], sort=False)
+        Nu01 = Nutot.query('cl3d_isobdt_passWP01==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Nu05 = Nutot.query('cl3d_isobdt_passWP05==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Nu10 = Nutot.query('cl3d_isobdt_passWP10==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Nu15 = Nutot.query('cl3d_isobdt_passWP15==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
 
         print('\n**INFO: PU cluster passing the ISO QCD rejection:')
         print('  -- number of PU events passing WP01: {0}%'.format(round(float(Nu01['cl3d_isobdt_passWP01'].count())/float(Nutot['cl3d_isobdt_passWP01'].count())*100,2)))
@@ -390,11 +365,11 @@ if __name__ == "__main__" :
         print('  -- number of PU events passing WP10: {0}%'.format(round(float(Nu10['cl3d_isobdt_passWP10'].count())/float(Nutot['cl3d_isobdt_passWP10'].count())*100,2)))
         print('  -- number of PU events passing WP15: {0}%'.format(round(float(Nu15['cl3d_isobdt_passWP15'].count())/float(Nutot['cl3d_isobdt_passWP15'].count())*100,2)))
 
-        Tautot = pd.concat([dfTr.query('sgnId==1'), dfVal.query('sgnId==1')], sort=False)
-        Tau01 = Tautot.query('cl3d_isobdt_passWP01==True')
-        Tau05 = Tautot.query('cl3d_isobdt_passWP05==True')
-        Tau10 = Tautot.query('cl3d_isobdt_passWP10==True')
-        Tau15 = Tautot.query('cl3d_isobdt_passWP15==True')
+        Tautot = pd.concat([dfTraining_dict[name].query('sgnId==1'), dfValidation_dict[name].query('sgnId==1')], sort=False)
+        Tau01 = Tautot.query('cl3d_isobdt_passWP01==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Tau05 = Tautot.query('cl3d_isobdt_passWP05==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Tau10 = Tautot.query('cl3d_isobdt_passWP10==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Tau15 = Tautot.query('cl3d_isobdt_passWP15==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
 
         print('\n**INFO: Tau cluster passing the ISO QCD rejection:')
         print('  -- number of Tau events passing WP01: {0}%'.format(round(float(Tau01['cl3d_isobdt_passWP01'].count())/float(Tautot['cl3d_isobdt_passWP01'].count())*100,2)))
