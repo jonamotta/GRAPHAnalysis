@@ -84,7 +84,7 @@ if __name__ == "__main__":
         scriptFile.write('cd %s\n'%currFolder)
         scriptFile.write('source scripts/setup.sh\n')
 
-        command = skimmer + ' ' + jobsDir+"/"+listFileName + ' ' + opt.output + '/' + "output_"+str(n)+".root" + ' ' + str(opt.nEvents) + ' ' + str(opt.isTau) + ' ' + str(opt.isQCD) + ' ' + str(opt.gen3Dmatch) + ' ' + str(opt.DEBUG)
+        command = skimmer + ' ' + jobsDir+"/"+listFileName + ' ' + opt.output + '/' + "output_"+str(n)+".root" + ' ' + str(opt.nEvents) + ' ' + str(opt.isTau) + ' ' + str(opt.isQCD) + ' ' + str(opt.isTT) + ' ' + str(opt.gen3Dmatch) + ' ' + str(opt.DEBUG)
         command += ' >& ' + opt.output + '/' + "output_" + str(n) + '.log\n'
         scriptFile.write(command)
 
