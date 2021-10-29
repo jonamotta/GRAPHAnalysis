@@ -117,24 +117,6 @@ if __name__ == "__main__" :
 
     events_frequency=2808*11.2  # N_bunches * frequency [kHz] --> from: https://cds.cern.ch/record/2130736/files/Introduction%20to%20the%20HL-LHC%20Project.pdf
 
-    # colors to use for plotting
-    colors_dict = {
-        'threshold'    : 'blue',
-        'supertrigger' : 'red',
-        'bestchoice'   : 'olive',
-        'bestcoarse'   : 'orange',
-        'mixed'        : 'fuchsia'
-    }
-
-    # legend to use for plotting
-    legends_dict = {
-        'threshold'    : 'Threshold 1.35 mipT',
-        'supertrigger' : 'STC4+16',
-        'bestchoice'   : 'BC Decentral',
-        'bestcoarse'   : 'BC Coarse 2x2 TC',
-        'mixed'        : 'Mixed BC + STC'
-    }
-
 
     #*****************************************************************************#
     #************************ LOOP OVER FRONT-END METHODS ************************#

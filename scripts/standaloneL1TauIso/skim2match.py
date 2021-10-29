@@ -166,7 +166,7 @@ if __name__ == "__main__" :
 
     # create needed folders
     indir   = '/data_CMS_upgrade/motta/HGCAL_SKIMS/SKIM_12May2021'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/rateEvaluation'
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT_rateEvaluation/hdf5dataframes'
     os.system('mkdir -p '+outdir)
 
     # DICTIONARIES FOR THE MATCHING
