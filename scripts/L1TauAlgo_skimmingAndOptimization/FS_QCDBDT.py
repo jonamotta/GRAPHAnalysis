@@ -95,11 +95,20 @@ if __name__ == "__main__" :
     
 
     # features for BDT training - ORDERED BY ANY IMPORTANCE METRIC (from highest to lowest)
-    featuresSHAP = ['cl3d_abseta', 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etIso_dRsgn1_dRiso3', 'cl3d_pt_tr', 'cl3d_srrtot', 'tower_etSgn_dRsgn2', 'cl3d_meanz', 'cl3d_spptot', 'cl3d_hoe', 'tower_etSgn_dRsgn1', 'cl3d_srrmean', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7', 'tower_etHadIso_dRsgn1_dRiso7', 'cl3d_sppmax', 'cl3d_coreshowerlength', 'cl3d_seemax', 'cl3d_showerlength', 'cl3d_srrmax', 'cl3d_szz', 'cl3d_seetot', 'cl3d_firstlayer']
-    featuresXGB  = ['cl3d_etIso_dR4', 'tower_etIso_dRsgn1_dRiso3', 'tower_etSgn_dRsgn1', 'cl3d_NclIso_dR4', 'cl3d_pt_tr', 'cl3d_srrtot', 'cl3d_abseta', 'tower_etSgn_dRsgn2', 'cl3d_spptot', 'cl3d_coreshowerlength', 'cl3d_hoe', 'cl3d_srrmean', 'tower_etIso_dRsgn2_dRiso4', 'cl3d_meanz', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn2_dRiso7', 'cl3d_showerlength', 'tower_etEmIso_dRsgn2_dRiso4', 'cl3d_sppmax', 'cl3d_seemax', 'cl3d_szz', 'cl3d_srrmax', 'cl3d_seetot', 'cl3d_firstlayer']
     featuresRNDM = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7']
+    if args.PUWP == '99':
+        featuresSHAP = ['cl3d_NclIso_dR4', 'cl3d_abseta', 'cl3d_etIso_dR4', 'cl3d_pt_tr', 'cl3d_srrtot', 'tower_etIso_dRsgn1_dRiso3', 'tower_etSgn_dRsgn2', 'tower_etSgn_dRsgn1', 'cl3d_meanz', 'cl3d_hoe', 'cl3d_spptot', 'cl3d_srrmean', 'cl3d_coreshowerlength', 'tower_etEmIso_dRsgn2_dRiso4', 'cl3d_sppmax', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn2_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn1_dRiso7', 'cl3d_showerlength', 'cl3d_seemax', 'cl3d_szz', 'cl3d_srrmax', 'cl3d_seetot', 'cl3d_firstlayer']
+        featuresXGB  = ['cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'cl3d_NclIso_dR4', 'tower_etIso_dRsgn1_dRiso3', 'cl3d_srrtot', 'cl3d_pt_tr', 'tower_etSgn_dRsgn2', 'cl3d_abseta', 'cl3d_srrmean', 'cl3d_coreshowerlength', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_spptot', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn1_dRiso7', 'cl3d_sppmax', 'tower_etIso_dRsgn2_dRiso4', 'cl3d_seetot', 'cl3d_showerlength', 'tower_etHadIso_dRsgn2_dRiso7', 'cl3d_srrmax', 'cl3d_seemax', 'cl3d_szz', 'cl3d_firstlayer']
 
+    elif args.PUWP == '95':
+        featuresSHAP = ['cl3d_NclIso_dR4', 'cl3d_abseta', 'cl3d_etIso_dR4', 'cl3d_pt_tr', 'cl3d_srrtot', 'tower_etIso_dRsgn1_dRiso3', 'tower_etSgn_dRsgn2', 'cl3d_meanz', 'cl3d_hoe', 'tower_etSgn_dRsgn1', 'cl3d_spptot', 'cl3d_srrmean', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn1_dRiso3', 'cl3d_sppmax', 'tower_etIso_dRsgn2_dRiso4', 'cl3d_coreshowerlength', 'tower_etHadIso_dRsgn2_dRiso7', 'tower_etHadIso_dRsgn1_dRiso7', 'cl3d_showerlength', 'cl3d_seemax', 'cl3d_srrmax', 'cl3d_szz', 'cl3d_seetot', 'cl3d_firstlayer']
+        featuresXGB  = ['cl3d_etIso_dR4', 'tower_etIso_dRsgn1_dRiso3', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'cl3d_pt_tr', 'cl3d_srrtot', 'tower_etSgn_dRsgn2', 'cl3d_abseta', 'cl3d_srrmean', 'cl3d_meanz', 'cl3d_spptot', 'cl3d_hoe', 'cl3d_coreshowerlength', 'tower_etEmIso_dRsgn1_dRiso3', 'cl3d_firstlayer', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'cl3d_sppmax', 'tower_etHadIso_dRsgn2_dRiso7', 'cl3d_showerlength', 'cl3d_seemax', 'cl3d_szz', 'cl3d_srrmax', 'cl3d_seetot']
 
+    else:
+        featuresSHAP = ['cl3d_abseta', 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etIso_dRsgn1_dRiso3', 'cl3d_pt_tr', 'cl3d_srrtot', 'tower_etSgn_dRsgn2', 'cl3d_meanz', 'cl3d_spptot', 'cl3d_hoe', 'tower_etSgn_dRsgn1', 'cl3d_srrmean', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7', 'tower_etHadIso_dRsgn1_dRiso7', 'cl3d_sppmax', 'cl3d_coreshowerlength', 'cl3d_seemax', 'cl3d_showerlength', 'cl3d_srrmax', 'cl3d_szz', 'cl3d_seetot', 'cl3d_firstlayer']
+        featuresXGB  = ['cl3d_etIso_dR4', 'tower_etIso_dRsgn1_dRiso3', 'tower_etSgn_dRsgn1', 'cl3d_pt_tr', 'cl3d_srrtot', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn2', 'cl3d_abseta', 'cl3d_hoe', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etEmIso_dRsgn1_dRiso3', 'cl3d_spptot', 'cl3d_meanz', 'tower_etIso_dRsgn2_dRiso4', 'cl3d_srrmean', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7', 'cl3d_coreshowerlength', 'cl3d_sppmax', 'cl3d_seetot', 'cl3d_showerlength', 'cl3d_srrmax', 'cl3d_seemax', 'cl3d_szz', 'cl3d_firstlayer']
+
+    
     # cerate train and test 
     X_train = dfTr[featuresSHAP] ; y_train = dfTr['sgnId']
 
@@ -107,19 +116,19 @@ if __name__ == "__main__" :
     print('\n** INFO: doing random search')
     FS = ModuleFeatureSkimmer.FeatureSkimmer("ISOBDT", featuresRNDM, params_dict, num_trees, 2, args.metric)
     randomScores, randomStds, randomFeats = FS.RandomSearch(X_train, y_train)
-    FS.plotterFctFeats(plotdir, "RNDM_PUWP{0}".args.PUWP)
+    FS.plotterFctFeats(plotdir, "RNDM_PUWP{0}".format(args.PUWP))
 
     # do sequential backward search based on SHAP importance
     print('\n** INFO: doing sequential backward search based on SHAP importance')
     FS = ModuleFeatureSkimmer.FeatureSkimmer("ISOBDT", featuresSHAP, params_dict, num_trees, 2, args.metric)
     SHAPsequentialScores, SHAPsequentialStds, SHAPsequentialFeats = FS.SequentialBackwardSearch(X_train, y_train)
-    FS.plotterFctFeats(plotdir, "SHAP_PUWP{0}".args.PUWP)
+    FS.plotterFctFeats(plotdir, "SHAP_PUWP{0}".format(args.PUWP))
 
     # do sequential backward search based on XGB importance
     print('\n** INFO: doing sequential backward search based on XGB importance')
     FS = ModuleFeatureSkimmer.FeatureSkimmer("ISOBDT", featuresXGB, params_dict, num_trees, 2, args.metric)
     XGBsequentialScores, XGBsequentialStds, XGBsequentialFeats = FS.SequentialBackwardSearch(X_train, y_train)
-    FS.plotterFctFeats(plotdir, "XGB_PUWP{0}".args.PUWP)
+    FS.plotterFctFeats(plotdir, "XGB_PUWP{0}".format(args.PUWP))
 
     # plot the three methods superimposed
     plt.figure(figsize=(8,8))

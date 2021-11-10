@@ -19,7 +19,7 @@ if __name__ == "__main__" :
 
     # create needed folders
     indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}'.format("Rscld" if args.doRescale else "")
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/ISOrejectionBDTskimmingAndOptimization_Rscld{0}/HPO'.format("_Rscld" if args.doRescale else "")
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/ISOrejectionBDTskimmingAndOptimization{0}/HPO'.format("_Rscld" if args.doRescale else "")
     os.system('mkdir -p '+plotdir)
 
     print('** INFO: prepearing datasets')
@@ -33,22 +33,25 @@ if __name__ == "__main__" :
     # select events for the training
     dfTr = dfTr.query('cl3d_pubdt_passWP{0}==True and cl3d_isbestmatch==True'.format(args.PUWP)).copy(deep=True)
     dfVal = dfVal.query('cl3d_pubdt_passWP{0}==True and cl3d_isbestmatch==True'.format(args.PUWP)).copy(deep=True)
+    # create a copy to cl3d_pt that will be used only for the training of the BDTs
+    dfTr['cl3d_pt_tr'] = dfTr['cl3d_pt'].copy(deep=True)
+    dfVal['cl3d_pt_tr'] = dfVal['cl3d_pt'].copy(deep=True)
     # clean the dataframe to reduce memory usage
-    tokeep = ['sgnId', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_abseta', 'cl3d_hoe', 'cl3d_srrmean']
+    tokeep = ['sgnId', ]
     dfTr = dfTr[tokeep]
     dfVal = dfVal[tokeep]
 
     # reduce dimension for testing new stuff
-    dfTr = pd.concat([dfTr[dfTr['sgnId']==1].sample(500), dfTr[dfTr['sgnId']==0].sample(500)], sort=False)
-    dfVal = pd.concat([dfVal[dfVal['sgnId']==1].sample(500), dfVal[dfVal['sgnId']==0].sample(500)], sort=False)
+    #dfTr = pd.concat([dfTr[dfTr['sgnId']==1].sample(500), dfTr[dfTr['sgnId']==0].sample(500)], sort=False)
+    #dfVal = pd.concat([dfVal[dfVal['sgnId']==1].sample(500), dfVal[dfVal['sgnId']==0].sample(500)], sort=False)
 
     # apply rescaling if wanted
     if args.doRescale:
             print('\n** INFO: rescaling features to bound their values')
 
             # the saturation and shifting values are calculated in the "features_reshaping" JupyScript
-            features2shift = 
-            features2saturate = 
+            features2shift = []
+            features2saturate = []
             saturation_dict = {
 
                               }
@@ -77,8 +80,16 @@ if __name__ == "__main__" :
                 dfTr[feat] = MMS.transform( np.array(dfTr[feat]).reshape(-1,1) )
                 dfVal[feat] = MMS.transform( np.array(dfVal[feat]).reshape(-1,1) )
 
-
     features = []
+    if args.PUWP == '99':
+        features = []
+
+    elif args.PUWP == '95':
+        features = []
+
+    else:
+        features = []
+
 
     # cerate train, test, and validation datasets
     X_train, X_test, y_train, y_test = train_test_split(dfTr[features], dfTr['sgnId'], stratify=dfTr['sgnId'], test_size=0.3)
@@ -94,17 +105,14 @@ if __name__ == "__main__" :
 
     print('\n** INFO: doing bayesian optimization')
     HPO = ModuleHyperparameterOptimizer.HyperparametersOptimizer("ISOBDT", features, hypar_bounds, min_num_trees, max_num_trees, X_train, X_test, X_val, y_train, y_test, y_val)
-    #best_params, score, report = HPO.RunBayesianOptimization(init_points=2, n_iter=3)
-
-    extended_best_params, extended_train_scores, extended_test_scores, extended_val_scores, extended_reports = HPO.RunExtendedBayesianOptimization(init_points=10, n_iter=40)
 
     extended_best_params, extended_reports = HPO.RunExtendedBayesianOptimization(init_points=10, n_iter=40)
 
-    HPO.plotterAucVsParams(plotdir, 'train')
-    HPO.plotterAucVsParams(plotdir, 'test')
-    HPO.plotterAucVsParams(plotdir, 'val')
-    HPO.plotterRmsleVsParams(plotdir, 'train')
-    HPO.plotterRmsleVsParams(plotdir, 'test')
-    HPO.plotterRmsleVsParams(plotdir, 'val')
-    HPO.storeExtendedReport(plotdir, "ISOBDT")
-    HPO.storeExtendedBestParams(plotdir, "ISOBDT")
+    HPO.plotterAucVsParams(plotdir, 'train', "_PUWP{0}".format(args.PUWP))
+    HPO.plotterAucVsParams(plotdir, 'test', "_PUWP{0}".format(args.PUWP))
+    HPO.plotterAucVsParams(plotdir, 'val', "_PUWP{0}".format(args.PUWP))
+    HPO.plotterRmsleVsParams(plotdir, 'train', "_PUWP{0}".format(args.PUWP))
+    HPO.plotterRmsleVsParams(plotdir, 'test', "_PUWP{0}".format(args.PUWP))
+    HPO.plotterRmsleVsParams(plotdir, 'val', "_PUWP{0}".format(args.PUWP))
+    HPO.storeExtendedReport(plotdir, "ISOBDT_PUWP{0}".format(args.PUWP))
+    HPO.storeExtendedBestParams(plotdir, "ISOBDT_PUWP{0}".format(args.PUWP))

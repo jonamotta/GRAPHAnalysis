@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import xgboost as xgb
 import numpy as np
 
-class HyperparametersOptimizer():
+class HyperparametersBayesianOptimizer():
 
     # instantiate 
     def __init__(self, BDT, features, hyperparam_bounds, min_num_trees, max_num_trees, X_train, X_test, X_val, y_train, y_test, y_val):

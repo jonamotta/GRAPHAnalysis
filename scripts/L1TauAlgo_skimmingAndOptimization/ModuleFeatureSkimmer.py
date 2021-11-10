@@ -94,7 +94,8 @@ class FeatureSkimmer():
 
     # plot the results as a function of the features names
     def plotterFctFeats(self, plotdir, tag=""):
-        fig, ax = plt.subplots(figsize=(24,8))
+        height = len(self.feat_results[len(self.feat_results)-1])
+        fig, ax = plt.subplots(figsize=( height*3 , height ))
         x = np.linspace(2,len(self.feat_results),len(self.feat_results))
         ax.errorbar(x, self.score_results, self.std_results, lw=2, marker="h", elinewidth=2)
         ax.set_xticks(x)
@@ -106,7 +107,7 @@ class FeatureSkimmer():
             labels[i] = string
         ax.set_xticklabels(labels)
         plt.grid(linestyle=':')
-        plt.gcf().subplots_adjust(bottom=0.35)
+        plt.gcf().subplots_adjust(bottom=0.2)
         plt.xlabel('Features used in training')
         plt.ylabel(r'Optimization metric')
         plt.savefig(plotdir+'/FS_{0}_{1}AUROC_features{2}.pdf'.format(self.BDT,self.metric,tag))

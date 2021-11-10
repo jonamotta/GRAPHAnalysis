@@ -13,39 +13,49 @@ if __name__ == "__main__" :
 
     # parse user's options
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
+    parser.add_argument('--output', dest='output', help='output folder', default='none')
+    parser.add_argument('--FE', dest='FE', help='front-end', default='threshold')
+    parser.add_argument('--num_trees', dest='num_trees', help='number of boosting rounds', default=None)
+    parser.add_argument('--tag', dest='tag', help='output folder tag name', default='')
     parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
     # create needed folders
     indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/PUrejectionBDTskimmingAndOptimization{0}/HPO'.format("_Rscld" if args.doRescale else "")
-    os.system('mkdir -p '+plotdir)
+    outdir = args.output
+
+    # dictionary of front-end options
+    feNames_dict = {
+        'threshold'    : 'th',
+        'mixed'        : 'mx',  
+    }
+    fe = feNames_dict[args.FE]
 
     print('** INFO: prepearing datasets')
     # read training and validation datasets
-    store_tr = pd.HDFStore(indir+'/Training_PU200_th_matched.hdf5', mode='r')
+    store_tr = pd.HDFStore(indir+'/Training_PU200_{0}_matched.hdf5'.format(fe), mode='r')
     dfTr = store_tr['threshold']
     store_tr.close()
-    store_val = pd.HDFStore(indir+'/Validation_PU200_th_matched.hdf5', mode='r')
+    store_val = pd.HDFStore(indir+'/Validation_PU200_{0}_matched.hdf5'.format(fe), mode='r')
     dfVal = store_val['threshold']
     store_val.close()
     # select events for the training
-    dfTr = dfTr.query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
-    dfVal = dfVal.query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
+    dfTr.query('sgnId==1 or cl3d_isbestmatch==False', inplace=True)
+    dfVal.query('sgnId==1 or cl3d_isbestmatch==False', inplace=True)
     # clean the dataframe to reduce memory usage
     tokeep = ['sgnId', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_abseta', 'cl3d_hoe', 'cl3d_srrmean']
-    dfTr = dfTr[tokeep]
-    dfVal = dfVal[tokeep]
+    dfTr = dfTr[tokeep].copy(deep=True)
+    dfVal = dfVal[tokeep].copy(deep=True)
 
     # reduce dimension for testing new stuff
     #dfTr = pd.concat([dfTr[dfTr['sgnId']==1].sample(500), dfTr[dfTr['sgnId']==0].sample(500)], sort=False)
     #dfVal = pd.concat([dfVal[dfVal['sgnId']==1].sample(500), dfVal[dfVal['sgnId']==0].sample(500)], sort=False)
     # reduce dimension to speed up process but still have meaningfull results
     numberOfTaus = dfTr[dfTr['sgnId']==1].shape[0]
-    dfTr = pd.concat([ dfTr[dfTr['sgnId']==1] , dfTr[dfTr['sgnId']==0].sample(numberOfTaus*2) ], sort=False)
+    dfTr = pd.concat([ dfTr[dfTr['sgnId']==1] , dfTr[dfTr['sgnId']==0].sample(numberOfTaus*3) ], sort=False).copy(deep=True)
     numberOfTaus = dfVal[dfVal['sgnId']==1].shape[0]
-    dfVal = pd.concat([ dfVal[dfVal['sgnId']==1] , dfVal[dfVal['sgnId']==0].sample(numberOfTaus*2) ], sort=False)
+    dfVal = pd.concat([ dfVal[dfVal['sgnId']==1] , dfVal[dfVal['sgnId']==0].sample(numberOfTaus*3) ], sort=False).copy(deep=True)
 
 
     # apply rescaling if wanted
@@ -92,22 +102,9 @@ if __name__ == "__main__" :
     X_train, X_test, y_train, y_test = train_test_split(dfTr[features], dfTr['sgnId'], stratify=dfTr['sgnId'], test_size=0.3)
     X_val = dfVal[features] ; y_val = dfVal['sgnId']
 
-    # min_num_trees = 5
-    # max_num_trees = 50
-    # hypar_bounds = {'eta'              : (0.1, 0.4),
-    #                 'max_depth'        : (2, 25), 
-    #                 'subsample'        : (0.1, 0.9),
-    #                 'colsample_bytree' : (0.1, 0.9)
-    #                }
-
-    # print('\n** INFO: doing bayesian optimization')
-    # HPO = ModuleHyperparameterOptimizer.HyperparametersOptimizer("PUBDT", features, hypar_bounds, min_num_trees, max_num_trees, X_train, X_test, X_val, y_train, y_test, y_val)
-    # #best_params, score, report = HPO.RunBayesianOptimization(init_points=2, n_iter=3)
-
-    # extended_best_params, extended_reports = HPO.RunExtendedBayesianOptimization(init_points=10, n_iter=40)
-
-    min_num_trees = 2
-    max_num_trees = 100
+    # set to the same number to have only one hypothesis tested at a time
+    min_num_trees = int(args.num_trees)
+    max_num_trees = int(args.num_trees)
 
     gridsearch_params = {'max_depth'        : [2, 3, 4, 5],
                          'eta'              : [0.001,0.005,0.01,0.05,0.1],
@@ -119,13 +116,8 @@ if __name__ == "__main__" :
 
     HPO = ModuleHyperparameterGridOptimizer.HyperparametersGridOptimizer("PUBDT", features, gridsearch_params, min_num_trees, max_num_trees, X_train, X_test, X_val, y_train, y_test, y_val)
 
-    best_params = HPO.RunExtendedGridOptimization()
+    best_params = HPO.RunTierGridOptimization()
 
-    HPO.plotterAucVsParams(plotdir, 'train')
-    HPO.plotterAucVsParams(plotdir, 'test')
-    HPO.plotterAucVsParams(plotdir, 'val')
-    HPO.plotterRmsleVsParams(plotdir, 'train')
-    HPO.plotterRmsleVsParams(plotdir, 'test')
-    HPO.plotterRmsleVsParams(plotdir, 'val')
-    #HPO.storeExtendedReport(plotdir, "PUBDT")
-    HPO.storeExtendedBestParams(plotdir, "PUBDT")
+    HPO.storeBestParamsScoresTier(outdir)
+
+    
