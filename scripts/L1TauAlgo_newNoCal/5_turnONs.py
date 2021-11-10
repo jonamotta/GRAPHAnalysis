@@ -21,20 +21,20 @@ def efficiency(group, threshold, PUWP, ISOWP):
     tot = group.shape[0]
     
     if PUWP == '99':
-        if   ISOWP == '01': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP01 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-        elif ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-        elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-        else:             sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        if   ISOWP == '20': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        elif ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        else:             sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
     elif PUWP == '95':
-        if   ISOWP == '01': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP01 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-        elif ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-        elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-        else:             sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        if   ISOWP == '20': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        elif ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        else:             sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
     else:
-        if   ISOWP == '01': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP01 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
-        elif ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
-        elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
-        else:             sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]    
+        if   ISOWP == '20': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+        elif ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+        elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+        else:             sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]    
     
     return float(sel)/float(tot)
 
@@ -42,20 +42,20 @@ def efficiency_err(group, threshold, PUWP, ISOWP, upper=False):
     tot = group.shape[0]
 
     if PUWP == '99':
-        if   ISOWP == '01': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP01 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-        elif ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-        elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-        else:             sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        if   ISOWP == '20': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        elif ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+        else:             sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
     elif PUWP == '95':
-        if   ISOWP == '01': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP01 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-        elif ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-        elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-        else:             sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        if   ISOWP == '20': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        elif ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+        else:             sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
     else:
-        if   ISOWP == '01': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP01 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
-        elif ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
-        elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
-        else:             sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]    
+        if   ISOWP == '20': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+        elif ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+        elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+        else:             sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True) & (group.cl3d_pubdt_passWP90 == True)].shape[0]    
 
     # clopper pearson errors --> ppf gives the boundary of the cinfidence interval, therefore for plotting we have to subtract the value of the central value float(sel)/float(tot)!!
     alpha = (1 - 0.9) / 2
@@ -88,7 +88,7 @@ if __name__ == "__main__" :
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     parser.add_argument('--PUWP', dest='PUWP', help='which working point do you want to use (90, 95, 99)?', default='99')
-    parser.add_argument('--ISOWP', dest='ISOWP', help='which working point do you want to use (10, 05, 01)?', default='05')
+    parser.add_argument('--ISOWP', dest='ISOWP', help='which working point do you want to use (10, 15, 20, 25)?', default='25')
     parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
     parser.add_argument('--effFitLimit', dest='effFitLimit', help='how many gentau_pt bins you wnat to consider for the fit of the turnON? (default: 49 bins = <150GeV)', default=49)
     # store parsed options

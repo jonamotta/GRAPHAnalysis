@@ -50,16 +50,16 @@ def train_xgb(dfTr, features, output, hyperparams, num_trees):
 
 def efficiency(group, threshold, PUWP):
     tot = group.shape[0]
-    if   PUWP == 99: sel = group[(group.cl3d_pt > threshold) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-    elif PUWP == 95: sel = group[(group.cl3d_pt > threshold) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-    else:            sel = group[(group.cl3d_pt > threshold) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+    if   PUWP == 99: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+    elif PUWP == 95: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+    else:            sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
     return float(sel)/float(tot)
 
 def efficiency_err(group, threshold, PUWP, upper=False):
     tot = group.shape[0]
-    if   PUWP == 99: sel = group[(group.cl3d_pt > threshold) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
-    elif PUWP == 95: sel = group[(group.cl3d_pt > threshold) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
-    else:            sel = group[(group.cl3d_pt > threshold) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
+    if   PUWP == 99: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_pubdt_passWP99 == True)].shape[0]
+    elif PUWP == 95: sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_pubdt_passWP95 == True)].shape[0]
+    else:            sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_pubdt_passWP90 == True)].shape[0]
     
     # clopper pearson errors --> ppf gives the boundary of the cinfidence interval, therefore for plotting we have to subtract the value of the central value float(sel)/float(tot)!!
     alpha = (1 - 0.9) / 2
@@ -140,23 +140,24 @@ if __name__ == "__main__" :
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_fullPUnoPt{0}'.format("Rscld" if args.doRescale else "")
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/PUrejection_fullPUnoPt{0}'.format("Rscld" if args.doRescale else "")
-    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_fullPUnoPt{0}'.format("Rscld" if args.doRescale else "")
+    tag = "Rscld" if args.doRescale else ""
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1fullC2C3'
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_fullPUnoPt{0}'.format(tag)
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/PUrejection_fullPUnoPt{0}'.format(tag)
+    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_fullPUnoPt{0}'.format(tag)
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_fullPUnoPt{0}/performance.log".format("Rscld" if args.doRescale else ""))
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_fullPUnoPt{0}/performance.log".format(tag))
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
-        'threshold'    : indir+'/Training_PU200_th_matched.hdf5',
+        'threshold'    : indir+'/Training_PU200_th_calibrated.hdf5',
         'mixed'        : indir+'/'
     }
 
     inFileValidation_dict = {
-        'threshold'    : indir+'/Validation_PU200_th_matched.hdf5',
+        'threshold'    : indir+'/Validation_PU200_th_calibrated.hdf5',
         'mixed'        : indir+'/'
     }
 
@@ -455,12 +456,12 @@ if __name__ == "__main__" :
 
         del TOT, TOT90, TOT95, TOT99
 
-        TOT = pd.concat([dfTraining_dict[name],dfValidation_dict[name]],sort=False).query('sgnId==1 and cl3d_pt>=30')
+        TOT = pd.concat([dfTraining_dict[name],dfValidation_dict[name]],sort=False).query('sgnId==1 and cl3d_pt_c3>=30')
         TOT99 = TOT.query('cl3d_pubdt_passWP99==True').copy(deep=True)
         TOT95 = TOT.query('cl3d_pubdt_passWP95==True').copy(deep=True)
         TOT90 = TOT.query('cl3d_pubdt_passWP90==True').copy(deep=True)
 
-        print('\nOVERALL SGN EFFICIENCIES FOR cl3d_pt>30GeV:')
+        print('\nOVERALL SGN EFFICIENCIES FOR cl3d_pt_c3>30GeV:')
         print('     at 0.99 sgn efficiency: {0}%'.format(round(float(TOT99.shape[0])/float(TOT.shape[0])*100,2)))
         print('     at 0.95 sgn efficiency: {0}%'.format(round(float(TOT95.shape[0])/float(TOT.shape[0])*100,2)))
         print('     at 0.90 sgn efficiency: {0}%'.format(round(float(TOT90.shape[0])/float(TOT.shape[0])*100,2)))

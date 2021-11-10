@@ -58,7 +58,7 @@ if __name__ == "__main__" :
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--PUWP', dest='PUWP', help='which working point do you want to use (90, 95, 99)?', default='90')
-    parser.add_argument('--ISOWP', dest='ISOWP', help='which working point do you want to use (10, 05, 01)?', default='05')
+    parser.add_argument('--ISOWP', dest='ISOWP', help='which working point do you want to use (10, 15, 20, 25)?', default='25')
     parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
@@ -76,14 +76,15 @@ if __name__ == "__main__" :
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}_fullISO{0}'.format("Rscld" if args.doRescale else "")
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/DMsorted_fullPUnoPt{0}_fullISO{0}'.format("Rscld" if args.doRescale else "")
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/DMsorting_fullPUnoPt{0}_PUWP{1}_fullISO{0}_ISOWP{2}'.format("Rscld" if args.doRescale else "",args.PUWP,args.ISOWP)
-    model_dict_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_fullPUnoPt{0}_fullISO{0}'.format("Rscld" if args.doRescale else "")
+    tag = "Rscld" if args.doRescale else ""
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}_fullISO{0}'.format(tag)
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/DMsorted_fullPUnoPt{0}_fullISO{0}'.format(tag)
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/DMsorting_fullPUnoPt{0}_PUWP{1}_fullISO{0}_ISOWP{2}'.format(tag, args.PUWP,args.ISOWP)
+    model_dict_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_fullPUnoPt{0}_fullISO{0}'.format(tag)
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_dict_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_fullPUnoPt{0}_fullISO{0}/performance_PUWP{1}_ISOWP{2}.log".format("Rscld" if args.doRescale else "",args.PUWP,args.ISOWP))
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_fullPUnoPt{0}_fullISO{0}/performance_PUWP{1}_ISOWP{2}.log".format(tag, args.PUWP,args.ISOWP))
 
     print('** INFO: using PU rejection BDT WP: '+args.PUWP)
     print('** INFO: using ISO BDT WP: '+args.ISOWP)
@@ -145,10 +146,9 @@ if __name__ == "__main__" :
     # 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_eSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_eSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_eIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_eIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7'
 
     # features used for the sorting step - FULL AVAILABLE
-    features = ['cl3d_pt', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
 
-    # name : [title, [min, max, step]
-    features_dict = {'cl3d_pt'               : [r'3D cluster $p_{T}$',[0.,500.,50]],
+    features_dict = {'cl3d_pt_tr'            : [r'3D cluster $p_{T}$',[0.,500.,50]],
                      'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,10]], 
                      'cl3d_showerlength'     : [r'3D cluster shower length',[0.,35.,15]], 
                      'cl3d_coreshowerlength' : [r'Core shower length ',[0.,35.,15]], 
@@ -163,21 +163,24 @@ if __name__ == "__main__" :
                      'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[0.,0.01,10]], 
                      'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[0.,4.,20]], 
                      'cl3d_meanz'            : [r'3D cluster meanz',[325.,375.,30]], 
-                     #'cl3d_NclIso_dR4'              : [r'Number of clusters inside an isolation cone of dR=0.4',[0.,10.,10]],
-                     #'cl3d_etIso_dR4'               : [r'Clusters $E_{T}$ inside an isolation cone of dR=0.4',[0.,200.,40]],
-                     #'tower_etSgn_dRsgn1'           : [r'$E_{T}$ inside a signal cone of dR=0.1',[0.,200.,40]],
-                     #'tower_eSgn_dRsgn1'            : [r'$E$ inside a signal cone of dR=0.1',[0.,400.,40]],
-                     #'tower_etSgn_dRsgn2'           : [r'$E_{T}$ inside a signal cone of dR=0.2',[0.,200.,40]],
-                     #'tower_eSgn_dRsgn2'            : [r'$E$ inside a signal cone of dR=0.2',[0.,400.,40]],
-                     #'tower_etIso_dRsgn1_dRiso3'    : [r'Towers $E_{T}$ between dR=0.1-0.3 around L1 candidate',[0.,200.,40]],
-                     #'tower_eIso_dRsgn1_dRiso3'     : [r'Towers $E$ between dR=0.1-0.3 around L1 candidate',[0.,400.,40]],
-                     #'tower_etEmIso_dRsgn1_dRiso3'  : [r'Towers $E_{T}^{em}$ between dR=0.1-0.3 around L1 candidate',[0.,150.,30]],
-                     #'tower_etHadIso_dRsgn1_dRiso7' : [r'Towers $E_{T}^{had}$ between dR=0.1-0.7 around L1 candidate',[0.,200.,40]],
-                     #'tower_etIso_dRsgn2_dRiso4'    : [r'Towers $E_{T}$ between dR=0.2-0.4 around L1 candidate',[0.,200.,40]],
-                     #'tower_eIso_dRsgn2_dRiso4'     : [r'Towers $E$ between dR=0.2-0.4 around L1 candidate',[0.,400.,40]],
-                     #'tower_etEmIso_dRsgn2_dRiso4'  : [r'Towers $E_{T}^{em}$ between dR=0.2-0.4 around L1 candidate',[0.,150.,30]],
-                     #'tower_etHadIso_dRsgn2_dRiso7' : [r'Towers $E_{T}^{had}$ between dR=0.2-0.7 around L1 candidate',[0.,200.,40]]
     }
+    if args.doRescale:
+        features_dict = {'cl3d_pt_tr'            : [r'3D cluster $p_{T}$',[-33.,33.,66]],
+                         'cl3d_abseta'           : [r'3D cluster |$\eta$|',[-33.,33.,66]], 
+                         'cl3d_showerlength'     : [r'3D cluster shower length',[-33.,33.,66]], 
+                         'cl3d_coreshowerlength' : [r'Core shower length ',[-33.,33.,66]], 
+                         'cl3d_firstlayer'       : [r'3D cluster first layer',[-33.,33.,66]], 
+                         'cl3d_seetot'           : [r'3D cluster total $\sigma_{ee}$',[-33.,33.,66]],
+                         'cl3d_seemax'           : [r'3D cluster max $\sigma_{ee}$',[-33.,33.,66]],
+                         'cl3d_spptot'           : [r'3D cluster total $\sigma_{\phi\phi}$',[-33.,33.,66]],
+                         'cl3d_sppmax'           : [r'3D cluster max $\sigma_{\phi\phi}$',[-33.,33.,66]],
+                         'cl3d_szz'              : [r'3D cluster $\sigma_{zz}$',[-33.,33.,66]], 
+                         'cl3d_srrtot'           : [r'3D cluster total $\sigma_{rr}$',[-33.,33.,66]],
+                         'cl3d_srrmax'           : [r'3D cluster max $\sigma_{rr}$',[-33.,33.,66]],
+                         'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[-33.,33.,66]], 
+                         'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[-33.,33.,66]], 
+                         'cl3d_meanz'            : [r'3D cluster meanz',[-33.,33.,66]], 
+        }
 
     #*****************************************************************************#
     #************************ LOOP OVER FRONT-END METHODS ************************#

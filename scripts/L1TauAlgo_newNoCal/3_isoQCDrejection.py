@@ -49,18 +49,18 @@ def train_xgb(dfTrain, features, output, hyperparams, num_trees, test_fraction=0
 
 def efficiency(group, threshold, ISOWP):
     tot = group.shape[0]
-    if   ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True)].shape[0]
-    elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True)].shape[0]
-    elif ISOWP == '15': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True)].shape[0]
-    else:               sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP20 == True)].shape[0]
+    if   ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True)].shape[0]
+    elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True)].shape[0]
+    elif ISOWP == '15': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True)].shape[0]
+    else:               sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True)].shape[0]
     return float(sel)/float(tot)
 
 def efficiency_err(group, threshold, ISOWP, upper=False):
     tot = group.shape[0]
-    if   ISOWP == '05': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP05 == True)].shape[0]
-    elif ISOWP == '10': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP10 == True)].shape[0]
-    elif ISOWP == '15': sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP15 == True)].shape[0]
-    else:               sel = group[(group.cl3d_pt > threshold) & (group.cl3d_isobdt_passWP20 == True)].shape[0]
+    if   ISOWP == '25': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP25 == True)].shape[0]
+    elif ISOWP == '10': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP10 == True)].shape[0]
+    elif ISOWP == '15': sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP15 == True)].shape[0]
+    else:               sel = group[(group.cl3d_pt_c3 > threshold) & (group.cl3d_isobdt_passWP20 == True)].shape[0]
     
     # clopper pearson errors --> ppf gives the boundary of the cinfidence interval, therefore for plotting we have to subtract the value of the central value float(sel)/float(tot)!!
     alpha = (1 - 0.9) / 2
@@ -140,14 +140,15 @@ if __name__ == "__main__" :
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}'.format("Rscld" if args.doRescale else "")
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}_fullISO{0}'.format("Rscld" if args.doRescale else "")
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/isolation_fullPUnoPt_fullISO{0}'.format("Rscld" if args.doRescale else "")
-    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_fullPUnoPt{0}_fullISO{0}'.format("Rscld" if args.doRescale else "")
+    tag = "Rscld" if args.doRescale else ""
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}'.format(tag)
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}_fullISO{0}'.format(tag)
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/isolation_fullPUnoPt_fullISO{0}_PUWP{1}'.format(tag, args.PUWP)
+    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_fullPUnoPt{0}_fullISO{0}'.format(tag)
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_fullPUnoPt{0}_fullISO{0}/performance_PUWP{1}.log".format("Rscld" if args.doRescale else "", args.PUWP))
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/isolation_fullPUnoPt{0}_fullISO{0}/performance_PUWP{1}.log".format(tag, args.PUWP))
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
@@ -188,8 +189,8 @@ if __name__ == "__main__" :
         'mixed'        : model_outdir+'/'
     }
 
-    outFile_WP05_dict = {
-        'threshold'    : model_outdir+'/WP05_isolation_PUWP{0}_th_PU200.pkl'.format(args.PUWP),
+    outFile_WP25_dict = {
+        'threshold'    : model_outdir+'/WP25_isolation_PUWP{0}_th_PU200.pkl'.format(args.PUWP),
         'mixed'        : model_outdir+'/'
     }
 
@@ -210,53 +211,55 @@ if __name__ == "__main__" :
     # target of the training
     output = 'sgnId'
 
-    # # features used for the ISO QCD rejection - FULL AVAILABLE
-    # features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7']
-    # # the saturation and shifting values are calculated in the "features_reshaping" JupyScript
-    # features2shift = ['cl3d_NclIso_dR4']
-    # features2saturate = ['cl3d_pt_tr', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7']
-    # saturation_dict = {'cl3d_pt_tr': [0, 200],
-    #                    'cl3d_etIso_dR4': [0, 58],
-    #                    'tower_etSgn_dRsgn1': [0, 194],
-    #                    'tower_etSgn_dRsgn2': [0, 228],
-    #                    'tower_etIso_dRsgn1_dRiso3': [0, 105],
-    #                    'tower_etEmIso_dRsgn1_dRiso3': [0, 72],
-    #                    'tower_etHadIso_dRsgn1_dRiso7': [0, 43],
-    #                    'tower_etIso_dRsgn2_dRiso4': [0, 129],
-    #                    'tower_etEmIso_dRsgn2_dRiso4': [0, 95],
-    #                    'tower_etHadIso_dRsgn2_dRiso7': [0, 42]
-    #                   }
-    # # BDT hyperparameters
-    # params_dict = {}
-    # params_dict['eval_metric']        = 'logloss'
-    # params_dict['nthread']            = 10  # limit number of threads
-    # params_dict['eta']                = 0.2 # learning rate
-    # params_dict['max_depth']          = 4   # maximum depth of a tree
-    # params_dict['subsample']          = 0.8 # fraction of events to train tree on
-    # params_dict['colsample_bytree']   = 0.8 # fraction of features to train tree on
-    # params_dict['objective']          = 'binary:logistic' # objective function
-    # num_trees = 60  # number of trees to make
-
-
-    # selected features from FS
-    features = []
-    features2shift = []
-    features2saturate = []
-    saturation_dict = {
-
+    # features used for the ISO QCD rejection - FULL AVAILABLE
+    features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7']
+    # the saturation and shifting values are calculated in the "features_reshaping" JupyScript
+    features2shift = ['cl3d_NclIso_dR4']
+    features2saturate = ['cl3d_pt_tr', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7']
+    saturation_dict = {'cl3d_pt_tr': [0, 200],
+                       'cl3d_etIso_dR4': [0, 58],
+                       'tower_etSgn_dRsgn1': [0, 194],
+                       'tower_etSgn_dRsgn2': [0, 228],
+                       'tower_etIso_dRsgn1_dRiso3': [0, 105],
+                       'tower_etEmIso_dRsgn1_dRiso3': [0, 72],
+                       'tower_etHadIso_dRsgn1_dRiso7': [0, 43],
+                       'tower_etIso_dRsgn2_dRiso4': [0, 129],
+                       'tower_etEmIso_dRsgn2_dRiso4': [0, 95],
+                       'tower_etHadIso_dRsgn2_dRiso7': [0, 42]
                       }
     # BDT hyperparameters
     params_dict = {}
-    params_dict['objective']          = 'binary:logistic'
     params_dict['eval_metric']        = 'logloss'
-    params_dict['nthread']            = 10
-    params_dict['alpha']              = 9
-    params_dict['lambda']             = 5
-    params_dict['max_depth']          =  # from HPO
-    params_dict['eta']                =  # from HPO
-    params_dict['subsample']          =  # from HPO
-    params_dict['colsample_bytree']   =  # from HPO
-    num_trees =  # from HPO
+    params_dict['nthread']            = 10  # limit number of threads
+    params_dict['eta']                = 0.2 # learning rate
+    params_dict['max_depth']          = 4   # maximum depth of a tree
+    params_dict['subsample']          = 0.8 # fraction of events to train tree on
+    params_dict['colsample_bytree']   = 0.8 # fraction of features to train tree on
+    params_dict['objective']          = 'binary:logistic' # objective function
+    num_trees = 60  # number of trees to make
+
+
+    # # selected features from FS
+    # features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+    # features2shift = ['cl3d_NclIso_dR4']
+    # features2saturate = ['cl3d_pt_tr', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+    # saturation_dict = {'cl3d_pt_tr': [0, 200],
+    #                    'cl3d_etIso_dR4': [0, 58],
+    #                    'tower_etSgn_dRsgn2': [0, 228],
+    #                    'tower_etIso_dRsgn1_dRiso3': [0, 105]
+    #                   }
+    # # BDT hyperparameters
+    # params_dict = {}
+    # params_dict['objective']          = 'binary:logistic'
+    # params_dict['eval_metric']        = 'logloss'
+    # params_dict['nthread']            = 10
+    # params_dict['alpha']              = 9
+    # params_dict['lambda']             = 5
+    # params_dict['max_depth']          = 4 # from HPO
+    # params_dict['eta']                = 0.37 # from HPO
+    # params_dict['subsample']          = 0.12 # from HPO
+    # params_dict['colsample_bytree']   = 0.9 # from HPO
+    # num_trees = 36 # from HPO
 
 
     # dictionaries for BDT training
@@ -275,7 +278,7 @@ if __name__ == "__main__" :
     tpr_validation_dict = {}
 
     # working points dictionaries
-    bdtWP05_dict = {}
+    bdtWP25_dict = {}
     bdtWP10_dict = {}
     bdtWP15_dict = {}
     bdtWP20_dict = {}
@@ -356,6 +359,8 @@ if __name__ == "__main__" :
         # here we select only the genuine QCD and Tau events
         dfTr = dfTraining_dict[name].query('cl3d_pubdt_passWP{0}==True and cl3d_isbestmatch==True'.format(args.PUWP)).copy(deep=True)
         dfVal = dfValidation_dict[name].query('cl3d_pubdt_passWP{0}==True and cl3d_isbestmatch==True'.format(args.PUWP)).copy(deep=True)
+        #dfTr = dfTraining_dict[name].query('cl3d_pubdt_passWP{0}==True'.format(args.PUWP)).copy(deep=True)
+        #dfVal = dfValidation_dict[name].query('cl3d_pubdt_passWP{0}==True'.format(args.PUWP)).copy(deep=True)
 
         ######################### TRAINING OF BDT #########################
 
@@ -366,19 +371,19 @@ if __name__ == "__main__" :
         print('  -- training AUROC: {0}'.format(trainAuroc_dict[name]))
         print('  -- test AUROC: {0}'.format(testAuroc_dict[name]))
 
-        bdtWP05_dict[name] = np.interp(0.05, fpr_train_dict[name], threshold_train_dict[name])
+        bdtWP25_dict[name] = np.interp(0.25, fpr_train_dict[name], threshold_train_dict[name])
         bdtWP10_dict[name] = np.interp(0.10, fpr_train_dict[name], threshold_train_dict[name])
         bdtWP15_dict[name] = np.interp(0.15, fpr_train_dict[name], threshold_train_dict[name])
         bdtWP20_dict[name] = np.interp(0.20, fpr_train_dict[name], threshold_train_dict[name])
         
         save_obj(model_dict[name], outFile_model_dict[name])
-        save_obj(bdtWP05_dict[name], outFile_WP05_dict[name])
+        save_obj(bdtWP25_dict[name], outFile_WP25_dict[name])
         save_obj(bdtWP10_dict[name], outFile_WP10_dict[name])
         save_obj(bdtWP15_dict[name], outFile_WP15_dict[name])
         save_obj(bdtWP20_dict[name], outFile_WP20_dict[name])
 
         # print some info about the WP and FPR at different sgn efficiency levels
-        print('\n**INFO: BDT WP for: 0.05FPR {1} -  0.10FPR {2} - 0.15FPR {3} - 0.20FPR {0}'.format(bdtWP20_dict[name], bdtWP05_dict[name], bdtWP10_dict[name], bdtWP15_dict[name]))
+        print('\n**INFO: BDT WP for: 0.25FPR {1} -  0.10FPR {2} - 0.15FPR {3} - 0.20FPR {0}'.format(bdtWP20_dict[name], bdtWP25_dict[name], bdtWP10_dict[name], bdtWP15_dict[name]))
 
 
         ######################### VALIDATION OF BDT #########################
@@ -397,14 +402,14 @@ if __name__ == "__main__" :
 
         full = xgb.DMatrix(data=dfTraining_dict[name][features], label=dfTraining_dict[name][output], feature_names=features)
         dfTraining_dict[name]['cl3d_isobdt_score'] = model_dict[name].predict(full)
-        dfTraining_dict[name]['cl3d_isobdt_passWP05'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP05_dict[name]
+        dfTraining_dict[name]['cl3d_isobdt_passWP25'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP25_dict[name]
         dfTraining_dict[name]['cl3d_isobdt_passWP10'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfTraining_dict[name]['cl3d_isobdt_passWP15'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP15_dict[name]
         dfTraining_dict[name]['cl3d_isobdt_passWP20'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP20_dict[name]
 
         full = xgb.DMatrix(data=dfValidation_dict[name][features], label=dfValidation_dict[name][output], feature_names=features)
         dfValidation_dict[name]['cl3d_isobdt_score'] = model_dict[name].predict(full)
-        dfValidation_dict[name]['cl3d_isobdt_passWP05'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP05_dict[name]
+        dfValidation_dict[name]['cl3d_isobdt_passWP25'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP25_dict[name]
         dfValidation_dict[name]['cl3d_isobdt_passWP10'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfValidation_dict[name]['cl3d_isobdt_passWP15'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP15_dict[name]
         dfValidation_dict[name]['cl3d_isobdt_passWP20'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP20_dict[name]
@@ -412,12 +417,12 @@ if __name__ == "__main__" :
         full = xgb.DMatrix(data=dfTr[features], label=dfTr[output], feature_names=features)
         dfTr['cl3d_isobdt_score'] = model_dict[name].predict(full)
         
-        dfTr['cl3d_isobdt_passWP05'] = dfTr['cl3d_isobdt_score'] > bdtWP05_dict[name]
+        dfTr['cl3d_isobdt_passWP25'] = dfTr['cl3d_isobdt_score'] > bdtWP25_dict[name]
         dfTr['cl3d_isobdt_passWP10'] = dfTr['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfTr['cl3d_isobdt_passWP15'] = dfTr['cl3d_isobdt_score'] > bdtWP15_dict[name]
         dfTr['cl3d_isobdt_passWP20'] = dfTr['cl3d_isobdt_score'] > bdtWP20_dict[name]
         
-        dfVal['cl3d_isobdt_passWP05'] = dfVal['cl3d_isobdt_score'] > bdtWP05_dict[name]
+        dfVal['cl3d_isobdt_passWP25'] = dfVal['cl3d_isobdt_score'] > bdtWP25_dict[name]
         dfVal['cl3d_isobdt_passWP10'] = dfVal['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfVal['cl3d_isobdt_passWP15'] = dfVal['cl3d_isobdt_score'] > bdtWP15_dict[name]
         dfVal['cl3d_isobdt_passWP20'] = dfVal['cl3d_isobdt_score'] > bdtWP20_dict[name]
@@ -426,45 +431,45 @@ if __name__ == "__main__" :
         ######################### PRINT OUT EFFICIENCIES #########################
 
         QCDtot = pd.concat([dfTraining_dict[name].query('gentau_decayMode==-2'), dfValidation_dict[name].query('gentau_decayMode==-2')], sort=False)
-        QCD05 = QCDtot.query('cl3d_isobdt_passWP05==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        QCD25 = QCDtot.query('cl3d_isobdt_passWP25==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         QCD10 = QCDtot.query('cl3d_isobdt_passWP10==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         QCD15 = QCDtot.query('cl3d_isobdt_passWP15==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         QCD20 = QCDtot.query('cl3d_isobdt_passWP20==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
 
         print('\n**INFO: QCD cluster passing the ISO QCD rejection:')
-        print('  -- number of QCD events passing WP05: {0}%'.format(round(float(QCD05['cl3d_isobdt_passWP05'].count())/float(QCDtot['cl3d_isobdt_passWP05'].count())*100,2)))
+        print('  -- number of QCD events passing WP25: {0}%'.format(round(float(QCD25['cl3d_isobdt_passWP25'].count())/float(QCDtot['cl3d_isobdt_passWP25'].count())*100,2)))
         print('  -- number of QCD events passing WP10: {0}%'.format(round(float(QCD10['cl3d_isobdt_passWP10'].count())/float(QCDtot['cl3d_isobdt_passWP10'].count())*100,2)))
         print('  -- number of QCD events passing WP15: {0}%'.format(round(float(QCD15['cl3d_isobdt_passWP15'].count())/float(QCDtot['cl3d_isobdt_passWP15'].count())*100,2)))
         print('  -- number of QCD events passing WP20: {0}%'.format(round(float(QCD20['cl3d_isobdt_passWP20'].count())/float(QCDtot['cl3d_isobdt_passWP20'].count())*100,2)))
 
         Nutot = pd.concat([dfTraining_dict[name].query('gentau_decayMode==-1'), dfValidation_dict[name].query('gentau_decayMode==-1')], sort=False)
-        Nu05 = Nutot.query('cl3d_isobdt_passWP05==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Nu25 = Nutot.query('cl3d_isobdt_passWP25==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         Nu10 = Nutot.query('cl3d_isobdt_passWP10==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         Nu15 = Nutot.query('cl3d_isobdt_passWP15==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         Nu20 = Nutot.query('cl3d_isobdt_passWP20==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
 
         print('\n**INFO: PU cluster passing the ISO QCD rejection:')
-        print('  -- number of PU events passing WP05: {0}%'.format(round(float(Nu05['cl3d_isobdt_passWP05'].count())/float(Nutot['cl3d_isobdt_passWP05'].count())*100,2)))
+        print('  -- number of PU events passing WP25: {0}%'.format(round(float(Nu25['cl3d_isobdt_passWP25'].count())/float(Nutot['cl3d_isobdt_passWP25'].count())*100,2)))
         print('  -- number of PU events passing WP10: {0}%'.format(round(float(Nu10['cl3d_isobdt_passWP10'].count())/float(Nutot['cl3d_isobdt_passWP10'].count())*100,2)))
         print('  -- number of PU events passing WP15: {0}%'.format(round(float(Nu15['cl3d_isobdt_passWP15'].count())/float(Nutot['cl3d_isobdt_passWP15'].count())*100,2)))
         print('  -- number of PU events passing WP20: {0}%'.format(round(float(Nu20['cl3d_isobdt_passWP20'].count())/float(Nutot['cl3d_isobdt_passWP20'].count())*100,2)))
 
         Tautot = pd.concat([dfTraining_dict[name].query('sgnId==1'), dfValidation_dict[name].query('sgnId==1')], sort=False)
-        Tau05 = Tautot.query('cl3d_isobdt_passWP05==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
+        Tau25 = Tautot.query('cl3d_isobdt_passWP25==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         Tau10 = Tautot.query('cl3d_isobdt_passWP10==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         Tau15 = Tautot.query('cl3d_isobdt_passWP15==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
         Tau20 = Tautot.query('cl3d_isobdt_passWP20==True and cl3d_pubdt_passWP{0}==True'.format(args.PUWP))
 
         print('\n**INFO: Tau cluster passing the ISO QCD rejection:')
-        print('  -- number of Tau events passing WP05: {0}%'.format(round(float(Tau05['cl3d_isobdt_passWP05'].count())/float(Tautot['cl3d_isobdt_passWP05'].count())*100,2)))
+        print('  -- number of Tau events passing WP25: {0}%'.format(round(float(Tau25['cl3d_isobdt_passWP25'].count())/float(Tautot['cl3d_isobdt_passWP25'].count())*100,2)))
         print('  -- number of Tau events passing WP10: {0}%'.format(round(float(Tau10['cl3d_isobdt_passWP10'].count())/float(Tautot['cl3d_isobdt_passWP10'].count())*100,2)))
         print('  -- number of Tau events passing WP15: {0}%'.format(round(float(Tau15['cl3d_isobdt_passWP15'].count())/float(Tautot['cl3d_isobdt_passWP15'].count())*100,2)))
         print('  -- number of Tau events passing WP20: {0}%'.format(round(float(Tau20['cl3d_isobdt_passWP20'].count())/float(Tautot['cl3d_isobdt_passWP20'].count())*100,2)))
         print('')
-        print('  -- number of Tau pT>30GeV events passing WP05: {0}%'.format(round(float(Tau05.query('cl3d_pt>30')['cl3d_isobdt_passWP05'].count())/float(Tautot.query('cl3d_pt>30')['cl3d_isobdt_passWP05'].count())*100,2)))
-        print('  -- number of Tau pT>30GeV events passing WP10: {0}%'.format(round(float(Tau10.query('cl3d_pt>30')['cl3d_isobdt_passWP10'].count())/float(Tautot.query('cl3d_pt>30')['cl3d_isobdt_passWP10'].count())*100,2)))
-        print('  -- number of Tau pT>30GeV events passing WP15: {0}%'.format(round(float(Tau15.query('cl3d_pt>30')['cl3d_isobdt_passWP15'].count())/float(Tautot.query('cl3d_pt>30')['cl3d_isobdt_passWP15'].count())*100,2)))
-        print('  -- number of Tau pT>30GeV events passing WP20: {0}%'.format(round(float(Tau20.query('cl3d_pt>30')['cl3d_isobdt_passWP20'].count())/float(Tautot.query('cl3d_pt>30')['cl3d_isobdt_passWP20'].count())*100,2)))
+        print('  -- number of Tau pT>30GeV events passing WP25: {0}%'.format(round(float(Tau25.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP25'].count())/float(Tautot.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP25'].count())*100,2)))
+        print('  -- number of Tau pT>30GeV events passing WP10: {0}%'.format(round(float(Tau10.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP10'].count())/float(Tautot.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP10'].count())*100,2)))
+        print('  -- number of Tau pT>30GeV events passing WP15: {0}%'.format(round(float(Tau15.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP15'].count())/float(Tautot.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP15'].count())*100,2)))
+        print('  -- number of Tau pT>30GeV events passing WP20: {0}%'.format(round(float(Tau20.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP20'].count())/float(Tautot.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP20'].count())*100,2)))
 
 
         ######################### SAVE FILES #########################
@@ -747,7 +752,7 @@ if args.doEfficiency:
         effVSeta_TauDM1_dict[name] = dfTauDM1_dict[name].groupby('gentau_bin_eta').mean()
         effVSeta_TauDM2_dict[name] = dfTauDM2_dict[name].groupby('gentau_bin_eta').mean()
 
-        for ISOWP in ['05','10','15','20']:
+        for ISOWP in ['25','10','15','20']:
             for threshold in [10,20,30]:
                 # calculate efficiency for the TAU datasets --> calculated per bin that will be plotted
                 #                                           --> every efficiency_at{threshold} contains the value of the efficiency when applying the specific threshold 
@@ -785,7 +790,7 @@ if args.doEfficiency:
 
         # colors to use for plotting
         col = {
-            '05' : 'blue',
+            '25' : 'blue',
             '10' : 'red',
             '15' : 'fuchsia',
             '20' : 'green'
@@ -794,7 +799,7 @@ if args.doEfficiency:
         x_Tau = effVSpt_Tau_dict[name]['gentau_vis_pt'] # is binned and the value is the mean of the entries per bin
         for threshold in [10,20,30]:
             plt.figure(figsize=(10,10))
-            for ISOWP in ['05','10','15','20']:
+            for ISOWP in ['25','10','15','20']:
                 # all values for turnON curves
                 eff_Tau = effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)]
                 eff_err_low_Tau = effVSpt_Tau_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)]
@@ -828,7 +833,7 @@ if args.doEfficiency:
         x_Tau = effVSeta_Tau_dict[name]['gentau_vis_abseta'] # is binned and the value is the mean of the entries per bin
         for threshold in [10,20,30]:
             plt.figure(figsize=(10,10))
-            for ISOWP in ['05','10','15','20']:
+            for ISOWP in ['25','10','15','20']:
                 # all values for turnON curves
                 eff_Tau = effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)]
                 eff_err_low_Tau = effVSeta_Tau_dict[name]['efficiency_ISOWP{0}_err_low_at{1}GeV'.format(ISOWP,threshold)]
@@ -858,7 +863,7 @@ if args.doEfficiency:
         x_DM1_Tau = effVSpt_TauDM1_dict[name]['gentau_vis_pt']
         x_DM2_Tau = effVSpt_TauDM2_dict[name]['gentau_vis_pt']
         for threshold in [10,20,30]:
-            for ISOWP in ['05','10','15','20']:
+            for ISOWP in ['25','10','15','20']:
                 # all values for turnON curves
                 effTauDM0 = effVSpt_TauDM0_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)]
                 effTauDM1 = effVSpt_TauDM1_dict[name]['efficiency_ISOWP{0}_at{1}GeV'.format(ISOWP,threshold)]

@@ -1,12 +1,9 @@
 # THIS SCRIPT CALCULATES AND STORES 3 CLUSTER-BASED ISOLATION FEATURES AND 11 TOWER-BASED ISOLATION FEATURES
-# FOR THE ISOLATION CALCULATION ONLY CLUSTERS PASSING THE REQUIRED PUBDTWP ARE RETAINED
+# FOR THE ISOLATION CALCULATION ALL CLUSTERS ARE RETAINED, ALSO THOSE NOT PASSING THE PUBDTWP
 
 import os
 import pandas as pd
 import numpy as np
-import matplotlib
-from matplotlib import pyplot as plt
-import pickle
 import argparse
 
 
@@ -25,10 +22,10 @@ def L1Cl3dEtIso ( dfL1Candidates, dfL1associated2Candidates, dR ):
     df_joined = df_joined[sel].copy(deep=True)
 
     dfL1Candidates.reset_index(inplace=True)
-    dfL1Candidates.set_index(['event', 'cl3d_pt_c3'], inplace=True)
+    dfL1Candidates.set_index(['event', 'cl3d_pt'], inplace=True)
     
-    dfL1Candidates['cl3d_etIso_dR{0}'.format(int(dR*10))] = df_joined.groupby(['event', 'cl3d_pt_c3'])['cl3d_pt_c3_ass'].sum()
-    dfL1Candidates['cl3d_NclIso_dR{0}'.format(int(dR*10))] = df_joined.groupby(['event', 'cl3d_pt_c3'])['cl3d_pt_c3_ass'].size()
+    dfL1Candidates['cl3d_etIso_dR{0}'.format(int(dR*10))] = df_joined.groupby(['event', 'cl3d_pt'])['cl3d_pt_ass'].sum()
+    dfL1Candidates['cl3d_NclIso_dR{0}'.format(int(dR*10))] = df_joined.groupby(['event', 'cl3d_pt'])['cl3d_pt_ass'].size()
 
     dfL1Candidates.reset_index(inplace=True)
     dfL1Candidates.set_index('event',inplace=True)
@@ -56,10 +53,10 @@ def L1TowerEtIso ( dfL1Candidates, dfL1Towers, dRsgn, dRiso, dRisoEm, dRisoHad )
     dfL1Candidates.set_index(['event', 'cl3d_pt'], inplace=True)
 
     dfL1Candidates['tower_etSgn_dRsgn{0}'.format(int(dRsgn*10))] = df_joined_sgn.groupby(['event', 'cl3d_pt'])['tower_pt'].sum()
-    dfL1Candidates['tower_eSgn_dRsgn{0}'.format(int(dRsgn*10))] = df_joined_sgn.groupby(['event', 'cl3d_pt'])['tower_energy'].sum()
+    #dfL1Candidates['tower_eSgn_dRsgn{0}'.format(int(dRsgn*10))] = df_joined_sgn.groupby(['event', 'cl3d_pt'])['tower_energy'].sum() # too difficult to control the range of this variable
 
     dfL1Candidates['tower_etIso_dRsgn{0}_dRiso{1}'.format(int(dRsgn*10),int(dRiso*10))] = df_joined_iso.groupby(['event', 'cl3d_pt'])['tower_pt'].sum()
-    dfL1Candidates['tower_eIso_dRsgn{0}_dRiso{1}'.format(int(dRsgn*10),int(dRiso*10))] = df_joined_iso.groupby(['event', 'cl3d_pt'])['tower_energy'].sum()
+    #dfL1Candidates['tower_eIso_dRsgn{0}_dRiso{1}'.format(int(dRsgn*10),int(dRiso*10))] = df_joined_iso.groupby(['event', 'cl3d_pt'])['tower_energy'].sum() # too difficult to control the range of this variable
     dfL1Candidates['tower_etEmIso_dRsgn{0}_dRiso{1}'.format(int(dRsgn*10),int(dRisoEm*10))] = df_joined_iso.groupby(['event', 'cl3d_pt'])['tower_etEm'].sum()
     dfL1Candidates['tower_etHadIso_dRsgn{0}_dRiso{1}'.format(int(dRsgn*10),int(dRisoHad*10))] = df_joined_iso.groupby(['event', 'cl3d_pt'])['tower_etHad'].sum() 
 
@@ -69,37 +66,41 @@ def L1TowerEtIso ( dfL1Candidates, dfL1Towers, dRsgn, dRiso, dRisoEm, dRisoHad )
 
     del df_joined
 
-def IsoCalculation(dfTr, dfVal, dfTowers, PUWP, mode='candidate'):
+def IsoCalculation(dfTr, dfVal, dfTowers, mode='candidate'):
     if mode == 'Nu':
         print('       doing nu special L1 candidate selection')
         dfTr.reset_index(inplace=True)
-        dfL1CandidatesTr = dfTr.query('cl3d_pubdt_passWP{0}==True'.format(PUWP)).copy(deep=True) # selecting WP 99 we select also 95 and 90
-        dfL1CandidatesTr.sort_values('cl3d_pt_c3', inplace=True)
-        dfL1CandidatesTr.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
-        sel = dfTr['cl3d_pt_c3'].isin(dfL1CandidatesTr['cl3d_pt_c3'])
+        dfL1CandidatesTr = dfTr.query('cl3d_pubdt_passWP{0}==True'.format(args.hardPUrej if args.hardPUrej != 'NO' else '99')).copy(deep=True) # selecting WP 99 we select also 95 and 90
+        dfL1CandidatesTr.sort_values('cl3d_pt', inplace=True)
+        #dfL1CandidatesTr.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
+        dfL1CandidatesTr = dfL1CandidatesTr.groupby('event').tail(5).copy(deep=True) # keep only the 5 highest pt cluster
+        sel = dfTr['cl3d_pt'].isin(dfL1CandidatesTr['cl3d_pt'])
         dfL1ass2candTr = dfTr.drop(dfTr[sel].index)
-        dfL1ass2candTr.query('cl3d_pubdt_passWP{0}==True'.format(PUWP), inplace=True)
         dfL1CandidatesTr.set_index('event', inplace=True)
         dfL1CandidatesTr.sort_values('event', inplace=True)
         dfL1ass2candTr.set_index('event', inplace=True)
         dfL1ass2candTr.sort_values('event', inplace=True)
 
         dfVal.reset_index(inplace=True)
-        dfL1CandidatesVal = dfVal.query('cl3d_pubdt_passWP{0}==True'.format(PUWP)).copy(deep=True) # selecting WP 99 we select also 95 and 90
-        dfL1CandidatesVal.sort_values('cl3d_pt_c3', inplace=True)
-        dfL1CandidatesVal.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
-        sel = dfVal['cl3d_pt_c3'].isin(dfL1CandidatesVal['cl3d_pt_c3'])
+        dfL1CandidatesVal = dfVal.query('cl3d_pubdt_passWP{0}==True'.format(args.hardPUrej if args.hardPUrej != 'NO' else '99')).copy(deep=True) # selecting WP 99 we select also 95 and 90
+        dfL1CandidatesVal.sort_values('cl3d_pt', inplace=True)
+        #dfL1CandidatesVal.drop_duplicates('event', keep='last', inplace=True) # keep only highest pt cluster
+        dfL1CandidatesVal = dfL1CandidatesVal.groupby('event').tail(5).copy(deep=True) # keep only the 5 highest pt cluster
+        sel = dfVal['cl3d_pt'].isin(dfL1CandidatesVal['cl3d_pt'])
         dfL1ass2candVal = dfVal.drop(dfVal[sel].index)
-        dfL1ass2candVal.query('cl3d_pubdt_passWP{0}==True'.format(PUWP), inplace=True)
         dfL1CandidatesVal.set_index('event', inplace=True)
         dfL1CandidatesVal.sort_values('event', inplace=True)
         dfL1ass2candVal.set_index('event', inplace=True)
         dfL1ass2candVal.sort_values('event', inplace=True)
     else:
         dfL1CandidatesTr = dfTr.query('cl3d_isbestmatch==True').copy(deep=True)
-        dfL1ass2candTr = dfTr.query('cl3d_isbestmatch==False and cl3d_pubdt_passWP{0}==True'.format(PUWP)).copy(deep=True)
+        dfL1ass2candTr = dfTr.query('cl3d_isbestmatch==False').copy(deep=True)
         dfL1CandidatesVal = dfVal.query('cl3d_isbestmatch==True').copy(deep=True)
-        dfL1ass2candVal = dfVal.query('cl3d_isbestmatch==False and cl3d_pubdt_passWP{0}==True'.format(PUWP)).copy(deep=True)
+        dfL1ass2candVal = dfVal.query('cl3d_isbestmatch==False').copy(deep=True)
+
+    if args.hardPUrej !='NO':
+        dfL1ass2candTr.query('cl3d_pubdt_passWP{0}==True'.format(args.hardPUrej), inplace=True)
+        dfL1ass2candVal.query('cl3d_pubdt_passWP{0}==True'.format(args.hardPUrej), inplace=True)
 
     # split the two endcaps to make the loops over the rows faster
     dfL1CandidatesTr_p = dfL1CandidatesTr.query('cl3d_eta>=0').copy(deep=True)
@@ -144,7 +145,8 @@ if __name__ == "__main__" :
     # parse user's options
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
-    parser.add_argument('--PUWP', dest='PUWP', help='which PU working point do you want to use (90, 95, 99)?', default='90')
+    parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
+    parser.add_argument('--hardPUrej', dest='hardPUrej', help='apply hard PU rejection and do not consider PU categorized clusters for Iso variables? (99, 95, 90)', default='NO')
     # store parsed options
     args = parser.parse_args()
 
@@ -157,88 +159,72 @@ if __name__ == "__main__" :
     # dictionary of front-end options
     feNames_dict = {
         'threshold'    : 'Threshold',
-        'supertrigger' : 'Super Trigger Cell',
-        'bestchoice'   : 'BestChoice',
-        'bestcoarse'   : 'BestChoiceCoarse',
         'mixed'        : 'Mixed BC+STC',  
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected'
+    tag1 = "Rscld" if args.doRescale else ""
+    tag2 = "_{0}hardPUrej".format(args.hardPUrej) if args.hardPUrej != 'NO' else ""
     matchdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated'
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_fullPUnoPt{0}'.format(tag1)
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_fullPUnoPt{0}{1}'.format(tag1, tag2)
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir)
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
         'threshold'    : indir+'/Training_PU200_th_PUrejected.hdf5',
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     inFileValidation_dict = {
         'threshold'    : indir+'/Validation_PU200_th_PUrejected.hdf5',
-        'supertrigger' : indir+'/',
-        'bestchoice'   : indir+'/',
-        'bestcoarse'   : indir+'/',
         'mixed'        : indir+'/'
     }
 
     inFileHHTowers_dict = {
         'threshold'    : matchdir+'/GluGluHHTo2b2Tau_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     inFileTenTauTowers_dict = {
         'threshold'    : matchdir+'/RelValTenTau_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     inFileSingleTauTowers_dict = {
         'threshold'    : matchdir+'/RelValSingleTau_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
+        'mixed'        : matchdir+'/'
+    }
+
+    inFileVBFHTowers_dict = {
+        'threshold'    : matchdir+'/VBFHToTauTau_PU200_th_towers.hdf5',
+        'mixed'        : matchdir+'/'
+    }
+
+    inFileZprimeTowers_dict = {
+        'threshold'    : matchdir+'/ZprimeToTauTau_PU200_th_towers.hdf5',
         'mixed'        : matchdir+'/'
     }
 
     inFileQCDTowers_dict = {
         'threshold'    : matchdir+'/QCD_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     inFileNuTowers_dict = {
         'threshold'    : matchdir+'/RelValNu_PU200_th_towers.hdf5',
-        'supertrigger' : matchdir+'/',
-        'bestchoice'   : matchdir+'/',
-        'bestcoarse'   : matchdir+'/',
         'mixed'        : matchdir+'/'
     }
 
     outFileTraining_dict = {
-        'threshold'    : outdir+'/Training_PU200_th_isoCalculated_PUWP{0}.hdf5'.format(args.PUWP),
+        'threshold'    : outdir+'/Training_PU200_th_isoCalculated.hdf5',
         'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
     outFileValidation_dict = {
-        'threshold'    : outdir+'/Validation_PU200_th_isoCalculated_PUWP{0}.hdf5'.format(args.PUWP),
+        'threshold'    : outdir+'/Validation_PU200_th_isoCalculated.hdf5',
         'supertrigger' : outdir+'/',
-        'bestchoice'   : outdir+'/',
-        'bestcoarse'   : outdir+'/',
         'mixed'        : outdir+'/'
     }
 
@@ -253,7 +239,7 @@ if __name__ == "__main__" :
         if not name in args.FE: continue # skip the front-end options that we do not want to do
             
         print('---------------------------------------------------------------------------------------')
-        print('** INFO: starting isolation features calculation for the front-end option '+feNames_dict[name])
+        print('** INFO: starting calculation of isolation variables for the front-end option '+feNames_dict[name])
 
         store_tr = pd.HDFStore(inFileTraining_dict[name], mode='r')
         dfTraining_dict[name] = store_tr[name]
@@ -275,6 +261,14 @@ if __name__ == "__main__" :
         dfSingleTauTowers = store[name]
         store.close()
 
+        store = pd.HDFStore(inFileVBFHTowers_dict[name], mode='r')
+        dfVBFHTowers = store[name]
+        store.close()
+
+        store = pd.HDFStore(inFileZprimeTowers_dict[name], mode='r')
+        dfZprimeTowers = store[name]
+        store.close()
+
         store = pd.HDFStore(inFileQCDTowers_dict[name], mode='r')
         dfQCDTowers = store[name]
         store.close()
@@ -287,35 +281,51 @@ if __name__ == "__main__" :
         ######################### SELECT EVENTS FOR TRAINING #########################  
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - HH dataset ')
-        dfHHTr = dfTraining_dict[name].query('dataset==0').copy(deep=True)
-        dfHHVal = dfValidation_dict[name].query('dataset==0').copy(deep=True)
-        dfHHOutTr, dfHHOutVal = IsoCalculation(dfHHTr, dfHHVal, dfHHTowers, args.PUWP)
+        dfHHTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('hh') ].copy(deep=True)
+        dfHHVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('hh') ].copy(deep=True)
+        dfHHOutTr, dfHHOutVal = IsoCalculation(dfHHTr, dfHHVal, dfHHTowers)
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - TenTau dataset ')
-        dfTenTauTr = dfTraining_dict[name].query('dataset==1').copy(deep=True)
-        dfTenTauVal = dfValidation_dict[name].query('dataset==1').copy(deep=True)
-        dfTenTauOutTr, dfTenTauOutVal = IsoCalculation(dfTenTauTr, dfTenTauVal, dfTenTauTowers, args.PUWP)
+        dfTenTauTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('tentau') ].copy(deep=True)
+        dfTenTauVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('tentau') ].copy(deep=True)
+        dfTenTauOutTr, dfTenTauOutVal = IsoCalculation(dfTenTauTr, dfTenTauVal, dfTenTauTowers)
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - SingleTau dataset ')
-        dfSingleTauTr = dfTraining_dict[name].query('dataset==2').copy(deep=True)
-        dfSingleTauVal = dfValidation_dict[name].query('dataset==2').copy(deep=True)
-        dfSingleTauOutTr, dfSingleTauOutVal = IsoCalculation(dfSingleTauTr, dfSingleTauVal, dfSingleTauTowers, args.PUWP)
+        dfSingleTauTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('singletau') ].copy(deep=True)
+        dfSingleTauVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('singletau') ].copy(deep=True)
+        dfSingleTauOutTr, dfSingleTauOutVal = IsoCalculation(dfSingleTauTr, dfSingleTauVal, dfSingleTauTowers)
+
+        print('\n** INFO: calculating eT Iso for L1Tau candidates - VBFH dataset ')
+        dfVBFHTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('vbfh') ].copy(deep=True)
+        dfVBFHVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('vbfh') ].copy(deep=True)
+        dfVBFHOutTr, dfVBFHOutVal = IsoCalculation(dfVBFHTr, dfVBFHVal, dfVBFHTowers)
+
+        print('\n** INFO: calculating eT Iso for L1Tau candidates - Zprime dataset ')
+        dfZprimeTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('zprime') ].copy(deep=True)
+        dfZprimeVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('zprime') ].copy(deep=True)
+        dfZprimeOutTr, dfZprimeOutVal = IsoCalculation(dfZprimeTr, dfZprimeVal, dfZprimeTowers)
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - QCD dataset ')
-        dfQCDTr = dfTraining_dict[name].query('dataset==3').copy(deep=True)
-        dfQCDVal = dfValidation_dict[name].query('dataset==3').copy(deep=True)
-        dfQCDOutTr, dfQCDOutVal = IsoCalculation(dfQCDTr, dfQCDVal, dfQCDTowers, args.PUWP)
+        dfQCDTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('qcd') ].copy(deep=True)
+        dfQCDVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('qcd') ].copy(deep=True)
+        dfQCDOutTr, dfQCDOutVal = IsoCalculation(dfQCDTr, dfQCDVal, dfQCDTowers)
 
         print('\n** INFO: calculating eT Iso for L1Tau candidates - Nu dataset ')
-        dfNuTr = dfTraining_dict[name].query('dataset==4').copy(deep=True)
-        dfNuVal = dfValidation_dict[name].query('dataset==4').copy(deep=True)
-        dfNuOutTr, dfNuOutVal = IsoCalculation(dfNuTr, dfNuVal, dfNuTowers, args.PUWP, mode='Nu')
+        dfNuTr = dfTraining_dict[name][ dfTraining_dict[name].index.str.contains('nu') ].copy(deep=True)
+        dfNuVal = dfValidation_dict[name][ dfValidation_dict[name].index.str.contains('nu') ].copy(deep=True)
+        dfNuOutTr, dfNuOutVal = IsoCalculation(dfNuTr, dfNuVal, dfNuTowers, mode='Nu')
+
+
+        ######################### DO RESCALING OF THE FEATURES #########################
+
+        # Here we do not rescale the features for teh ISO rejection because if we do it at this point we lose completely the 
+        # un-rescaled information. Therefore the rescaling is left to be done directly before the training of the BDT
 
         
         ######################### SAVE FILES #########################
 
-        dfTraining_dict[name] = pd.concat([dfHHOutTr, dfTenTauOutTr, dfSingleTauOutTr, dfQCDOutTr, dfNuOutTr], sort=False)
-        dfValidation_dict[name] = pd.concat([dfHHOutVal, dfTenTauOutVal, dfSingleTauOutVal, dfQCDOutVal, dfNuOutVal], sort=False)
+        dfTraining_dict[name] = pd.concat([dfHHOutTr, dfTenTauOutTr, dfSingleTauOutTr, dfVBFHOutTr, dfZprimeOutTr, dfQCDOutTr, dfNuOutTr], sort=False)
+        dfValidation_dict[name] = pd.concat([dfHHOutVal, dfTenTauOutVal, dfSingleTauOutVal, dfVBFHOutVal, dfZprimeOutVal, dfQCDOutVal, dfNuOutVal], sort=False)
 
         store_tr = pd.HDFStore(outFileTraining_dict[name], mode='w')
         store_tr[name] = dfTraining_dict[name]
@@ -325,8 +335,9 @@ if __name__ == "__main__" :
         store_val[name] = dfValidation_dict[name]
         store_val.close()
 
-        print('** INFO: finished isolation features calculation for the front-end option '+feNames_dict[name])
+        print('** INFO: finished calculation of isolation variables for the front-end option '+feNames_dict[name])
         print('---------------------------------------------------------------------------------------')
+
 
 
 
