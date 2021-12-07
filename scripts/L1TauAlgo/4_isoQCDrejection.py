@@ -31,21 +31,24 @@ class Logger(object):
         pass
 
 
-def train_xgb(dfTrain, features, output, hyperparams, num_trees, test_fraction=0.3):    
+def train_xgb(dfTrain, features, output, hyperparams, test_fraction=0.3):    
     X_train, X_test, y_train, y_test = train_test_split(dfTrain[features], dfTrain[output], test_size=test_fraction)
 
-    train = xgb.DMatrix(data=X_train,label=y_train, feature_names=features)
-    test = xgb.DMatrix(data=X_test,label=y_test,feature_names=features)
-    booster = xgb.train(hyperparams, train, num_boost_round=num_trees)
-    X_train['bdt_output'] = booster.predict(train)
+    classifier = xgb.XGBClassifier(objective=hyperparams['objective'], booster=hyperparams['booster'], eval_metric=hyperparams['eval_metric'],
+                                   reg_alpha=hyperparams['reg_alpha'], reg_lambda=hyperparams['reg_lambda'], max_depth=hyperparams['max_depth'],
+                                   learning_rate=hyperparams['learning_rate'], subsample=hyperparams['subsample'], colsample_bytree=hyperparams['colsample_bytree'], 
+                                   n_estimators=hyperparams['num_trees'], use_label_encoder=False)
+
+    classifier.fit(X_train, y_train)
+    X_train['bdt_output'] = classifier.predict_proba(X_train)[:,1]
     fpr_train, tpr_train, threshold_train = metrics.roc_curve(y_train, X_train['bdt_output'])
-    X_test['bdt_output'] = booster.predict(test)
+    X_test['bdt_output'] = classifier.predict_proba(X_test)[:,1]
     fpr_test, tpr_test, threshold_test = metrics.roc_curve(y_test, X_test['bdt_output'])
 
     auroc_test = metrics.roc_auc_score(y_test,X_test['bdt_output'])
     auroc_train = metrics.roc_auc_score(y_train,X_train['bdt_output'])
 
-    return booster, fpr_train, tpr_train, threshold_train, fpr_test, tpr_test, threshold_test, auroc_test, auroc_train
+    return classifier, fpr_train, tpr_train, threshold_train, fpr_test, tpr_test, threshold_test, auroc_test, auroc_train
 
 def efficiency(group, threshold, ISOWP):
     tot = group.shape[0]
@@ -127,6 +130,7 @@ if __name__ == "__main__" :
     parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
     parser.add_argument('--hardPUrej', dest='hardPUrej', help='apply hard PU rejection and do not consider PU categorized clusters for Iso variables? (99, 95, 90)', default='NO')
     parser.add_argument('--effFitLimit', dest='effFitLimit', help='how many gentau_pt bins you want to consider for the fit of the turnON? (default: 49 bins = <150GeV)', default=49)
+    parser.add_argument('--doONNX', dest='doONNX', help='run ONNX conversione', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
@@ -270,15 +274,25 @@ if __name__ == "__main__" :
 
     # selected features from FS
     features = []
+    renaming_dict = {}
     if args.PUWP == '99':
-        features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_coreshowerlength', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+        #features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_coreshowerlength', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+        features = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12']
+        renaming_dict = {'cl3d_pt_tr':'f1', 'cl3d_abseta':'f2', 'cl3d_coreshowerlength':'f3', 'cl3d_spptot':'f4', 'cl3d_srrtot':'f5', 'cl3d_srrmean':'f6', 'cl3d_hoe':'f7', 'cl3d_meanz':'f8', 'cl3d_NclIso_dR4':'f9', 'tower_etSgn_dRsgn1':'f10', 'tower_etSgn_dRsgn2':'f11', 'tower_etIso_dRsgn1_dRiso3':'f12'}
+        unnaming_dict = {'f1':'cl3d_pt_tr', 'f2':'cl3d_abseta', 'f3':'cl3d_coreshowerlength', 'f4':'cl3d_spptot', 'f5':'cl3d_srrtot', 'f6':'cl3d_srrmean', 'f7':'cl3d_hoe', 'f8':'cl3d_meanz', 'f9':'cl3d_NclIso_dR4', 'f10':'tower_etSgn_dRsgn1', 'f11':'tower_etSgn_dRsgn2', 'f12':'tower_etIso_dRsgn1_dRiso3'}
 
     elif args.PUWP == '95':
-        features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+        #features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+        features = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11']
+        renaming_dict = {'cl3d_pt_tr':'f1', 'cl3d_abseta':'f2', 'cl3d_coreshowerlength':'f3', 'cl3d_srrtot':'f4', 'cl3d_srrmean':'f5', 'cl3d_hoe':'f6', 'cl3d_meanz':'f7', 'cl3d_NclIso_dR4':'f8', 'tower_etSgn_dRsgn1':'f9', 'tower_etSgn_dRsgn2':'f10', 'tower_etIso_dRsgn1_dRiso3':'f11'}
+        unnaming_dict = {'f1':'cl3d_pt_tr', 'f2':'cl3d_abseta', 'f3':'cl3d_coreshowerlength', 'f4':'cl3d_srrtot', 'f5':'cl3d_srrmean', 'f6':'cl3d_hoe', 'f7':'cl3d_meanz', 'f8':'cl3d_NclIso_dR4', 'f9':'tower_etSgn_dRsgn1', 'f10':'tower_etSgn_dRsgn2', 'f11':'tower_etIso_dRsgn1_dRiso3'}
 
     else:
-        features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
-    
+        #features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+        features = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11']
+        renaming_dict = {'cl3d_pt_tr':'f1', 'cl3d_abseta':'f2', 'cl3d_spptot':'f3', 'cl3d_srrtot':'f4', 'cl3d_srrmean':'f5', 'cl3d_hoe':'f6', 'cl3d_meanz':'f7', 'cl3d_NclIso_dR4':'f8', 'tower_etSgn_dRsgn1':'f9', 'tower_etSgn_dRsgn2':'f10', 'tower_etIso_dRsgn1_dRiso3':'f11'}
+        unnaming_dict = {'f1':'cl3d_pt_tr', 'f2':'cl3d_abseta', 'f3':'cl3d_spptot', 'f4':'cl3d_srrtot', 'f5':'cl3d_srrmean', 'f6':'cl3d_hoe', 'f7':'cl3d_meanz', 'f8':'cl3d_NclIso_dR4', 'f9':'tower_etSgn_dRsgn1', 'f10':'tower_etSgn_dRsgn2', 'f11':'tower_etIso_dRsgn1_dRiso3'}
+
     features2shift = ['cl3d_NclIso_dR4', 'cl3d_coreshowerlength']
     features2saturate = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
     saturation_dict = {'cl3d_pt_tr': [0, 200],
@@ -295,16 +309,15 @@ if __name__ == "__main__" :
     # BDT hyperparameters
     params_dict = {}
     params_dict['objective']          = 'binary:logistic'
+    params_dict['booster']            = 'gbtree'
     params_dict['eval_metric']        = 'logloss'
-    params_dict['nthread']            = 10
-    params_dict['alpha']              = 9
-    params_dict['lambda']             = 5
+    params_dict['reg_alpha']          = 9
+    params_dict['reg_lambda']         = 5
     params_dict['max_depth']          = 4 # from HPO
-    params_dict['eta']                = 0.37 # from HPO
+    params_dict['learning_rate']      = 0.37 # from HPO
     params_dict['subsample']          = 0.12 # from HPO
     params_dict['colsample_bytree']   = 0.9 # from HPO
-    num_trees = 30 # from HPO
-
+    params_dict['num_trees']          = 30 # from HPO
 
     # dictionaries for BDT training
     model_dict= {}
@@ -408,10 +421,19 @@ if __name__ == "__main__" :
         dfTr = dfTraining_dict[name].query('cl3d_pubdt_passWP{0}==True'.format(args.PUWP)).copy(deep=True)
         dfVal = dfValidation_dict[name].query('cl3d_pubdt_passWP{0}==True'.format(args.PUWP)).copy(deep=True)
 
+        ######################### RENAME FEATURES #########################
+
+        dfTr.rename(columns=renaming_dict, inplace=True)
+        dfVal.rename(columns=renaming_dict, inplace=True)
+
+        dfTraining_dict[name].rename(columns=renaming_dict, inplace=True)
+        dfValidation_dict[name].rename(columns=renaming_dict, inplace=True)
+
+
         ######################### TRAINING OF BDT #########################
 
         print('\n** INFO: training BDT')
-        model_dict[name], fpr_train_dict[name], tpr_train_dict[name], threshold_train_dict[name], fpr_test_dict[name], tpr_test_dict[name], threshold_test_dict[name], testAuroc_dict[name], trainAuroc_dict[name] = train_xgb(dfTr, features, output, params_dict, num_trees, test_fraction=0.3)
+        model_dict[name], fpr_train_dict[name], tpr_train_dict[name], threshold_train_dict[name], fpr_test_dict[name], tpr_test_dict[name], threshold_test_dict[name], testAuroc_dict[name], trainAuroc_dict[name] = train_xgb(dfTr, features, output, params_dict, test_fraction=0.3)
 
         print('\n** INFO: training and test AUROC:')
         print('  -- training AUROC: {0}'.format(trainAuroc_dict[name]))
@@ -436,11 +458,21 @@ if __name__ == "__main__" :
         print('\n**INFO: BDT WP for: 0.10FPR {0} - 0.15FPR {1} - 0.20FPR {2}'.format(bdtWP10_dict[name], bdtWP15_dict[name], bdtWP20_dict[name]))
         print('\n**INFO: BDT WP for: 0.90TPR {0} - 0.95TPR {1} - 0.99TPR {2}'.format(bdtWP90_dict[name], bdtWP95_dict[name], bdtWP99_dict[name]))
 
+        if args.doONNX:
+            import onnxmltools
+            from onnxmltools.convert.common.data_types import FloatTensorType
+
+            initial_type = [('float_input', FloatTensorType([1, 6]))]
+            onnx_model = onnxmltools.convert.convert_xgboost(model_dict[name], initial_types=initial_type)
+            with open(model_outdir+"/ISOmodel_nonRscld.onnx", "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            with open("/home/llr/cms/motta/HGCAL/CMSSW_11_1_7/src/L1Trigger/L1CaloTrigger/data/ISOmodel_nonRscld.onnx", "wb") as f:
+                f.write(onnx_model.SerializeToString())
+
 
         ######################### VALIDATION OF BDT #########################
 
-        full = xgb.DMatrix(data=dfVal[features], label=dfVal[output], feature_names=features)
-        dfVal['cl3d_isobdt_score'] = model_dict[name].predict(full)
+        dfVal['cl3d_isobdt_score'] = model_dict[name].predict_proba(dfVal[features])[:,1]
 
         fpr_validation_dict[name], tpr_validation_dict[name], threshold_validation_dict[name] = metrics.roc_curve(dfVal[output], dfVal['cl3d_isobdt_score'])
         auroc_validation = metrics.roc_auc_score(dfVal['sgnId'],dfVal['cl3d_isobdt_score'])
@@ -451,8 +483,7 @@ if __name__ == "__main__" :
 
         ######################### APPLICATION OF BDT TO ALL DATASETS #########################
 
-        full = xgb.DMatrix(data=dfTraining_dict[name][features], label=dfTraining_dict[name][output], feature_names=features)
-        dfTraining_dict[name]['cl3d_isobdt_score'] = model_dict[name].predict(full)
+        dfTraining_dict[name]['cl3d_isobdt_score'] = model_dict[name].predict_proba(dfTraining_dict[name][features])[:,1]
         dfTraining_dict[name]['cl3d_isobdt_passWP10'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfTraining_dict[name]['cl3d_isobdt_passWP15'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP15_dict[name]
         dfTraining_dict[name]['cl3d_isobdt_passWP20'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP20_dict[name]
@@ -460,8 +491,7 @@ if __name__ == "__main__" :
         dfTraining_dict[name]['cl3d_isobdt_passWP95'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP95_dict[name]
         dfTraining_dict[name]['cl3d_isobdt_passWP99'] = dfTraining_dict[name]['cl3d_isobdt_score'] > bdtWP99_dict[name]
 
-        full = xgb.DMatrix(data=dfValidation_dict[name][features], label=dfValidation_dict[name][output], feature_names=features)
-        dfValidation_dict[name]['cl3d_isobdt_score'] = model_dict[name].predict(full)
+        dfValidation_dict[name]['cl3d_isobdt_score'] = model_dict[name].predict_proba(dfValidation_dict[name][features])[:,1]
         dfValidation_dict[name]['cl3d_isobdt_passWP10'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfValidation_dict[name]['cl3d_isobdt_passWP15'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP15_dict[name]
         dfValidation_dict[name]['cl3d_isobdt_passWP20'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP20_dict[name]
@@ -469,8 +499,7 @@ if __name__ == "__main__" :
         dfValidation_dict[name]['cl3d_isobdt_passWP95'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP95_dict[name]
         dfValidation_dict[name]['cl3d_isobdt_passWP99'] = dfValidation_dict[name]['cl3d_isobdt_score'] > bdtWP99_dict[name]
 
-        full = xgb.DMatrix(data=dfTr[features], label=dfTr[output], feature_names=features)
-        dfTr['cl3d_isobdt_score'] = model_dict[name].predict(full)
+        dfTr['cl3d_isobdt_score'] = model_dict[name].predict_proba(dfTr[features])[:,1]
         
         dfTr['cl3d_isobdt_passWP10'] = dfTr['cl3d_isobdt_score'] > bdtWP10_dict[name]
         dfTr['cl3d_isobdt_passWP15'] = dfTr['cl3d_isobdt_score'] > bdtWP15_dict[name]
@@ -543,6 +572,14 @@ if __name__ == "__main__" :
         print('  -- number of Tau pT>30GeV events passing WP90: {0}%'.format(round(float(Tau90.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP90'].count())/float(Tautot.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP90'].count())*100,2)))
         print('  -- number of Tau pT>30GeV events passing WP95: {0}%'.format(round(float(Tau95.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP95'].count())/float(Tautot.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP95'].count())*100,2)))
         print('  -- number of Tau pT>30GeV events passing WP99: {0}%'.format(round(float(Tau99.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP99'].count())/float(Tautot.query('cl3d_pt_c3>30')['cl3d_isobdt_passWP99'].count())*100,2)))
+
+        ######################### RENAME FEATURES BACK #########################
+
+        dfTr.rename(columns=unnaming_dict, inplace=True)
+        dfVal.rename(columns=unnaming_dict, inplace=True)
+
+        dfTraining_dict[name].rename(columns=unnaming_dict, inplace=True)
+        dfValidation_dict[name].rename(columns=unnaming_dict, inplace=True)
 
         ######################### SAVE FILES #########################
 
@@ -620,6 +657,16 @@ if args.doPlots:
                          'tower_etHadIso_dRsgn2_dRiso7' : [r'Towers $E_{T}^{had}$ between dR=0.2-0.7 around L1 candidate',[-33.,33.,66]],
     }
 
+    if args.PUWP == '99':
+        features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_coreshowerlength', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+
+    elif args.PUWP == '95':
+        features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+
+    else:
+        features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_spptot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz', 'cl3d_NclIso_dR4', 'tower_etSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3']
+
+
     for name in feNames_dict:
         if not name in args.FE: continue # skip the front-end options that we do not want to do
         
@@ -631,7 +678,7 @@ if args.doPlots:
         dfTau = dfTr.query('sgnId==1')
         dfQCDNu = dfTr.query('sgnId==0')
 
-        for var in features_dict:
+        for var in features:
             plt.figure(figsize=(10,10))
             plt.hist(dfQCD[var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='QCD background',      color='red',    histtype='step', lw=2, density=True)
             plt.hist(dfTau[var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='Tau signal',   color='limegreen',    histtype='step', lw=2, density=True)
@@ -671,7 +718,7 @@ if args.doPlots:
         matplotlib.rcParams.update({'font.size': 8})
         print('\n** INFO: plotting features importance and score')
         plt.figure(figsize=(15,15))
-        importance = model_dict[name].get_score(importance_type='gain')
+        importance = model_dict[name].get_booster().get_score(importance_type='gain')
         for key in importance:
             importance[key] = round(importance[key],2)
         xgb.plot_importance(importance, grid=False, importance_type='gain', lw=2)#, fontsize=8)

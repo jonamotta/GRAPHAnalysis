@@ -32,21 +32,24 @@ class Logger(object):
         pass
 
 
-def train_xgb(dfTr, features, output, hyperparams, num_trees):
+def train_xgb(dfTr, features, output, hyperparams):
     X_train, X_test, y_train, y_test = train_test_split(dfTr[features], dfTr[output], stratify=dfTr[output], test_size=0.3)
 
-    train = xgb.DMatrix(data=X_train,label=y_train, feature_names=features)
-    test = xgb.DMatrix(data=X_test,label=y_test,feature_names=features)
-    booster = xgb.train(hyperparams, train, num_boost_round=num_trees)
-    X_train['bdt_output'] = booster.predict(train)
+    classifier = xgb.XGBClassifier(objective=hyperparams['objective'], booster=hyperparams['booster'], eval_metric=hyperparams['eval_metric'],
+                                   reg_alpha=hyperparams['reg_alpha'], reg_lambda=hyperparams['reg_lambda'], max_depth=hyperparams['max_depth'],
+                                   learning_rate=hyperparams['learning_rate'], subsample=hyperparams['subsample'], colsample_bytree=hyperparams['colsample_bytree'], 
+                                   n_estimators=hyperparams['num_trees'], use_label_encoder=False)
+
+    classifier.fit(X_train, y_train)
+    X_train['bdt_output'] = classifier.predict_proba(X_train)[:,1]
     fpr_train, tpr_train, threshold_train = metrics.roc_curve(y_train, X_train['bdt_output'])
-    X_test['bdt_output'] = booster.predict(test)
+    X_test['bdt_output'] = classifier.predict_proba(X_test)[:,1]
     fpr_test, tpr_test, threshold_test = metrics.roc_curve(y_test, X_test['bdt_output'])
 
     auroc_test = metrics.roc_auc_score(y_test,X_test['bdt_output'])
     auroc_train = metrics.roc_auc_score(y_train,X_train['bdt_output'])
 
-    return booster, fpr_train, tpr_train, threshold_train, fpr_test, tpr_test, threshold_test, auroc_test, auroc_train
+    return classifier, fpr_train, tpr_train, threshold_train, fpr_test, tpr_test, threshold_test, auroc_test, auroc_train
 
 def efficiency(group, threshold, PUWP):
     tot = group.shape[0]
@@ -122,6 +125,7 @@ if __name__ == "__main__" :
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--doEfficiency', dest='doEfficiency', help='do you want calculate the efficiencies?', action='store_true', default=False)
     parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
+    parser.add_argument('--doONNX', dest='doONNX', help='run ONNX conversione', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
@@ -256,7 +260,8 @@ if __name__ == "__main__" :
     # num_trees = 60  # number of trees to make
 
     # selected features from FS
-    features = ['cl3d_c3', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    #features = ['cl3d_c3', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    features = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6']
     features2shift = ['cl3d_coreshowerlength']
     features2saturate = ['cl3d_c3', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
     saturation_dict = {'cl3d_c3': [0,30],
@@ -268,16 +273,15 @@ if __name__ == "__main__" :
     # BDT hyperparameters
     params_dict = {}
     params_dict['objective']          = 'binary:logistic'
+    params_dict['booster']            = 'gbtree'
     params_dict['eval_metric']        = 'logloss'
-    params_dict['nthread']            = 10
-    params_dict['alpha']              = 9
-    params_dict['lambda']             = 5
+    params_dict['reg_alpha']          = 9
+    params_dict['reg_lambda']         = 5
     params_dict['max_depth']          = 4 # from HPO
-    params_dict['eta']                = 0.35 # from HPO
+    params_dict['learning_rate']      = 0.35 # from HPO
     params_dict['subsample']          = 0.22 # from HPO
     params_dict['colsample_bytree']   = 0.7 # from HPO
-    num_trees = 24 # from HPO
-
+    params_dict['num_trees']          = 24 # from HPO
 
     # dictionaries for BDT training
     model_dict= {}
@@ -389,10 +393,21 @@ if __name__ == "__main__" :
         dfTr = dfTraining_dict[name].query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
         dfVal = dfValidation_dict[name].query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
 
+
+        ######################### RENAME FEATURES #########################
+
+        dfQCDTr.rename(columns={'cl3d_c3':'f1', 'cl3d_coreshowerlength':'f2', 'cl3d_srrtot':'f3', 'cl3d_srrmean':'f4', 'cl3d_hoe':'f5', 'cl3d_meanz':'f6'}, inplace=True)
+        dfQCDVal.rename(columns={'cl3d_c3':'f1', 'cl3d_coreshowerlength':'f2', 'cl3d_srrtot':'f3', 'cl3d_srrmean':'f4', 'cl3d_hoe':'f5', 'cl3d_meanz':'f6'}, inplace=True)
+        dfTr.rename(columns={'cl3d_c3':'f1', 'cl3d_coreshowerlength':'f2', 'cl3d_srrtot':'f3', 'cl3d_srrmean':'f4', 'cl3d_hoe':'f5', 'cl3d_meanz':'f6'}, inplace=True)
+        dfVal.rename(columns={'cl3d_c3':'f1', 'cl3d_coreshowerlength':'f2', 'cl3d_srrtot':'f3', 'cl3d_srrmean':'f4', 'cl3d_hoe':'f5', 'cl3d_meanz':'f6'}, inplace=True)
+
+        dfTraining_dict[name].rename(columns={'cl3d_c3':'f1', 'cl3d_coreshowerlength':'f2', 'cl3d_srrtot':'f3', 'cl3d_srrmean':'f4', 'cl3d_hoe':'f5', 'cl3d_meanz':'f6'}, inplace=True)
+        dfValidation_dict[name].rename(columns={'cl3d_c3':'f1', 'cl3d_coreshowerlength':'f2', 'cl3d_srrtot':'f3', 'cl3d_srrmean':'f4', 'cl3d_hoe':'f5', 'cl3d_meanz':'f6'}, inplace=True)
+
         ######################### TRAINING OF BDT #########################
 
         print('\n** INFO: training BDT')
-        model_dict[name], fpr_train_dict[name], tpr_train_dict[name], threshold_train_dict[name], fpr_test_dict[name], tpr_test_dict[name], threshold_test_dict[name], testAuroc_dict[name], trainAuroc_dict[name] = train_xgb(dfTr, features, output, params_dict, num_trees)
+        model_dict[name], fpr_train_dict[name], tpr_train_dict[name], threshold_train_dict[name], fpr_test_dict[name], tpr_test_dict[name], threshold_test_dict[name], testAuroc_dict[name], trainAuroc_dict[name] = train_xgb(dfTr, features, output, params_dict)
 
         print('\n** INFO: training and test AUROC:')
         print('  -- training AUROC: {0}'.format(trainAuroc_dict[name]))
@@ -415,10 +430,21 @@ if __name__ == "__main__" :
         print('\n**INFO: train bkg efficiency at: 0.99 sgn efficiency {0} -  0.95 sgn efficiency {1} -  0.90 sgn efficiency {2}'.format(np.interp(0.99, tpr_train_dict[name], fpr_train_dict[name]),np.interp(0.95, tpr_train_dict[name], fpr_train_dict[name]),np.interp(0.90, tpr_train_dict[name], fpr_train_dict[name])))
         print('**INFO: test bkg efficiency at: 0.99 sgn efficiency {0} -  0.95 sgn efficiency {1} -  0.90 sgn efficiency {2}'.format(np.interp(0.99, tpr_test_dict[name], fpr_test_dict[name]),np.interp(0.95, tpr_test_dict[name], fpr_test_dict[name]),np.interp(0.90, tpr_test_dict[name], fpr_test_dict[name])))
 
+        if args.doONNX:
+            import onnxmltools
+            from onnxmltools.convert.common.data_types import FloatTensorType
+
+            initial_type = [('float_input', FloatTensorType([1, 6]))]
+            onnx_model = onnxmltools.convert.convert_xgboost(model_dict[name], initial_types=initial_type)
+            with open(model_outdir+"/PUmodel_nonRscld.onnx", "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            with open("/home/llr/cms/motta/HGCAL/CMSSW_11_1_7/src/L1Trigger/L1CaloTrigger/data/PUmodel_nonRscld.onnx", "wb") as f:
+                f.write(onnx_model.SerializeToString())
+
         ######################### VALIDATION OF BDT #########################
 
         full = xgb.DMatrix(data=dfVal[features], label=dfVal[output], feature_names=features)
-        dfVal['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfVal['cl3d_pubdt_score'] = model_dict[name].predict_proba(dfVal[features])[:,1]
 
         fpr_validation_dict[name], tpr_validation_dict[name], threshold_validation_dict[name] = metrics.roc_curve(dfVal[output], dfVal['cl3d_pubdt_score'])
         auroc_validation = metrics.roc_auc_score(dfVal['sgnId'],dfVal['cl3d_pubdt_score'])
@@ -430,37 +456,37 @@ if __name__ == "__main__" :
         ######################### APPLICATION OF BDT TO ALL DATASETS #########################
 
         full = xgb.DMatrix(data=dfTraining_dict[name][features], label=dfTraining_dict[name][output], feature_names=features)
-        dfTraining_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfTraining_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict_proba(dfTraining_dict[name][features])[:,1]
         dfTraining_dict[name]['cl3d_pubdt_passWP99'] = dfTraining_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
         dfTraining_dict[name]['cl3d_pubdt_passWP95'] = dfTraining_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
         dfTraining_dict[name]['cl3d_pubdt_passWP90'] = dfTraining_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
         full = xgb.DMatrix(data=dfValidation_dict[name][features], label=dfValidation_dict[name][output], feature_names=features)
-        dfValidation_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfValidation_dict[name]['cl3d_pubdt_score'] = model_dict[name].predict_proba(dfValidation_dict[name][features])[:,1]
         dfValidation_dict[name]['cl3d_pubdt_passWP99'] = dfValidation_dict[name]['cl3d_pubdt_score'] > bdtWP99_dict[name]
         dfValidation_dict[name]['cl3d_pubdt_passWP95'] = dfValidation_dict[name]['cl3d_pubdt_score'] > bdtWP95_dict[name]
         dfValidation_dict[name]['cl3d_pubdt_passWP90'] = dfValidation_dict[name]['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
         full = xgb.DMatrix(data=dfTr[features], label=dfTr[output], feature_names=features)
-        dfTr['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfTr['cl3d_pubdt_score'] = model_dict[name].predict_proba(dfTr[features])[:,1]
         dfTr['cl3d_pubdt_passWP99'] = dfTr['cl3d_pubdt_score'] > bdtWP99_dict[name]
         dfTr['cl3d_pubdt_passWP95'] = dfTr['cl3d_pubdt_score'] > bdtWP95_dict[name]
         dfTr['cl3d_pubdt_passWP90'] = dfTr['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
         full = xgb.DMatrix(data=dfVal[features], label=dfVal[output], feature_names=features)
-        dfVal['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfVal['cl3d_pubdt_score'] = model_dict[name].predict_proba(dfVal[features])[:,1]
         dfVal['cl3d_pubdt_passWP99'] = dfVal['cl3d_pubdt_score'] > bdtWP99_dict[name]
         dfVal['cl3d_pubdt_passWP95'] = dfVal['cl3d_pubdt_score'] > bdtWP95_dict[name]
         dfVal['cl3d_pubdt_passWP90'] = dfVal['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
         full = xgb.DMatrix(data=dfQCDTr[features], label=dfQCDTr[output], feature_names=features)
-        dfQCDTr['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfQCDTr['cl3d_pubdt_score'] = model_dict[name].predict_proba(dfQCDTr[features])[:,1]
         dfQCDTr['cl3d_pubdt_passWP99'] = dfQCDTr['cl3d_pubdt_score'] > bdtWP99_dict[name]
         dfQCDTr['cl3d_pubdt_passWP95'] = dfQCDTr['cl3d_pubdt_score'] > bdtWP95_dict[name]
         dfQCDTr['cl3d_pubdt_passWP90'] = dfQCDTr['cl3d_pubdt_score'] > bdtWP90_dict[name]
 
         full = xgb.DMatrix(data=dfQCDVal[features], label=dfQCDVal[output], feature_names=features)
-        dfQCDVal['cl3d_pubdt_score'] = model_dict[name].predict(full)
+        dfQCDVal['cl3d_pubdt_score'] = model_dict[name].predict_proba(dfQCDVal[features])[:,1]
         dfQCDVal['cl3d_pubdt_passWP99'] = dfQCDVal['cl3d_pubdt_score'] > bdtWP99_dict[name]
         dfQCDVal['cl3d_pubdt_passWP95'] = dfQCDVal['cl3d_pubdt_score'] > bdtWP95_dict[name]
         dfQCDVal['cl3d_pubdt_passWP90'] = dfQCDVal['cl3d_pubdt_score'] > bdtWP90_dict[name]
@@ -502,6 +528,16 @@ if __name__ == "__main__" :
         print('     at 0.90 sgn efficiency: {0}%'.format(round(float(TOT90.shape[0])/float(TOT.shape[0])*100,2)))
 
         del TOT, TOT90, TOT95, TOT99
+
+        ######################### RENAME FEATURES BACK #########################
+
+        dfQCDTr.rename(columns={'f1':'cl3d_c3', 'f2':'cl3d_coreshowerlength', 'f3':'cl3d_srrtot', 'f4':'cl3d_srrmean', 'f5':'cl3d_hoe', 'f6':'cl3d_meanz'}, inplace=True)
+        dfQCDVal.rename(columns={'f1':'cl3d_c3', 'f2':'cl3d_coreshowerlength', 'f3':'cl3d_srrtot', 'f4':'cl3d_srrmean', 'f5':'cl3d_hoe', 'f6':'cl3d_meanz'}, inplace=True)
+        dfTr.rename(columns={'f1':'cl3d_c3', 'f2':'cl3d_coreshowerlength', 'f3':'cl3d_srrtot', 'f4':'cl3d_srrmean', 'f5':'cl3d_hoe', 'f6':'cl3d_meanz'}, inplace=True)
+        dfVal.rename(columns={'f1':'cl3d_c3', 'f2':'cl3d_coreshowerlength', 'f3':'cl3d_srrtot', 'f4':'cl3d_srrmean', 'f5':'cl3d_hoe', 'f6':'cl3d_meanz'}, inplace=True)
+
+        dfTraining_dict[name].rename(columns={'f1':'cl3d_c3', 'f2':'cl3d_coreshowerlength', 'f3':'cl3d_srrtot', 'f4':'cl3d_srrmean', 'f5':'cl3d_hoe', 'f6':'cl3d_meanz'}, inplace=True)
+        dfValidation_dict[name].rename(columns={'f1':'cl3d_c3', 'f2':'cl3d_coreshowerlength', 'f3':'cl3d_srrtot', 'f4':'cl3d_srrmean', 'f5':'cl3d_hoe', 'f6':'cl3d_meanz'}, inplace=True)
 
         ######################### SAVE FILES #########################
 
@@ -570,6 +606,8 @@ if args.doPlots:
                          'cl3d_meanz'            : [r'3D cluster meanz',[-33.,33.,66]], 
         }
 
+    features = ['cl3d_c3', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+
     for name in feNames_dict:
         if not name in args.FE: continue # skip the front-end options that we do not want to do
         
@@ -622,7 +660,7 @@ if args.doPlots:
 
         print('\n** INFO: plotting features importance and score')
         plt.figure(figsize=(10,10))
-        importance = model_dict[name].get_score(importance_type='gain')
+        importance = model_dict[name].get_booster().get_score(importance_type='gain')
         for key in importance:
             importance[key] = round(importance[key],2)
         xgb.plot_importance(importance, grid=False, importance_type='gain',lw=2)
