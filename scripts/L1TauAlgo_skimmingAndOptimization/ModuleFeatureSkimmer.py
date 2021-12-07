@@ -84,7 +84,7 @@ class FeatureSkimmer():
     # train models with specific set of features and get score
     def fit(self, features):
         train = xgb.DMatrix(data=self.Xtrain[features],label=self.ytrain, feature_names=features)
-        cv = xgb.cv(self.hyperparams, train, metrics=['auc'], nfold=10, num_boost_round=self.num_trees, stratified=True)
+        cv = xgb.cv(self.hyperparams, train, metrics=['auc'], nfold=5, num_boost_round=self.num_trees, stratified=True)
         score = 0.0
         std = 0.0
         if self.metric == "test":  score = cv['test-auc-mean'][self.num_trees-1] ; std = cv['test-auc-std'][self.num_trees-1]

@@ -1,7 +1,6 @@
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
-import ModuleHyperparameterBayesianOptimizer
 import ModuleHyperparameterGridOptimizer
 import pandas as pd
 import numpy as np
@@ -64,11 +63,11 @@ if __name__ == "__main__" :
 
             # the saturation and shifting values are calculated in the "features_reshaping" JupyScript
             features2shift = ['cl3d_coreshowerlength']
-            features2saturate = ['cl3d_abseta', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe']
+            features2saturate = ['cl3d_abseta', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_meanz']
             saturation_dict = {'cl3d_abseta': [1.45, 3.2],
                                'cl3d_srrtot': [0, 0.02],
                                'cl3d_srrmean': [0, 0.01],
-                               'cl3d_hoe': [0, 63]
+                               'cl3d_meanz': [305, 535]
                               }
 
             #define a DF with the bound values of the features to use for the MinMaxScaler fit

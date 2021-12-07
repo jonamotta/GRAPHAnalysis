@@ -18,8 +18,8 @@ if __name__ == "__main__" :
     args = parser.parse_args()
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1fullC2C3'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/PUrejectionBDTskimmingAndOptimization{0}/FS_test'.format("_Rscld" if args.doRescale else "")
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1skimC2C3'
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/PUrejectionBDTskimmingAndOptimization{0}/FSplus'.format("_Rscld" if args.doRescale else "")
     os.system('mkdir -p '+plotdir)
 
     print('** INFO: prepearing dataset')
@@ -30,11 +30,23 @@ if __name__ == "__main__" :
     # select events for the training
     dfTr = dfTr.query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
     # clean the dataframe to reduce memory usage
-    tokeep = ['sgnId', 'cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'cl3d_coreshowerlength', 'cl3d_seetot', 'cl3d_srrmean', 'cl3d_srrtot', 'cl3d_spptot', 'cl3d_abseta', 'cl3d_meanz', 'cl3d_showerlength', 'cl3d_hoe', 'cl3d_szz', 'cl3d_seemax', 'cl3d_firstlayer', 'cl3d_sppmax', 'cl3d_srrmax']
+    tokeep = ['sgnId', 'cl3d_pt', 'cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'cl3d_pt_c1', 'cl3d_pt_c2', 'cl3d_pt_c3', 'cl3d_coreshowerlength', 'cl3d_seetot', 'cl3d_srrmean', 'cl3d_srrtot', 'cl3d_spptot', 'cl3d_abseta', 'cl3d_meanz', 'cl3d_showerlength', 'cl3d_hoe', 'cl3d_szz', 'cl3d_seemax', 'cl3d_firstlayer', 'cl3d_sppmax', 'cl3d_srrmax']
     dfTr = dfTr[tokeep]
 
+    # calculate new features
+    dfTr['c1oc3'] = dfTr['cl3d_c1'] / dfTr['cl3d_c3']
+    dfTr['c1oc2'] = dfTr['cl3d_c1'] / dfTr['cl3d_c2']
+    dfTr['c2oc3'] = dfTr['cl3d_c2'] / dfTr['cl3d_c3']
+    dfTr['c1oPt'] = dfTr['cl3d_c1'] / dfTr['cl3d_pt']
+    dfTr['c2oPt'] = dfTr['cl3d_c2'] / dfTr['cl3d_pt']
+    dfTr['c3oPt'] = dfTr['cl3d_c3'] / dfTr['cl3d_pt']
+    dfTr['c1oPtc1'] = dfTr['cl3d_c1'] / dfTr['cl3d_pt_c1']
+    dfTr['c2oPtc2'] = dfTr['cl3d_c2'] / dfTr['cl3d_pt_c2']
+    dfTr['c3oPtc3'] = dfTr['cl3d_c3'] / dfTr['cl3d_pt_c3']
+    dfTr['fullScale'] = dfTr['cl3d_c2'] / dfTr['cl3d_c3'] + dfTr['cl3d_c1'] / dfTr['cl3d_pt']
+
     # reduce dimension for testing new stuff
-    #dfTr = pd.concat([dfTr[dfTr['sgnId']==1].sample(500), dfTr[dfTr['sgnId']==0].sample(500)], sort=False)
+    #dfTr = pd.concat([dfTr[dfTr['sgnId']==1].sample(100), dfTr[dfTr['sgnId']==0].sample(100)], sort=False)
     # reduce dimension to speed up process but still have meaningfull results
     numberOfTaus = dfTr[dfTr['sgnId']==1].shape[0]
     dfTr = pd.concat([ dfTr[dfTr['sgnId']==1] , dfTr[dfTr['sgnId']==0].sample(numberOfTaus*2) ], sort=False)
@@ -45,10 +57,20 @@ if __name__ == "__main__" :
 
             # the saturation and shifting values are calculated in the "features_reshaping" JupyScript
             features2shift = ['cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer',]
-            features2saturate = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'cl3d_abseta', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+            features2saturate = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'c1oc3', 'c1oc2', 'c2oc3', 'c1oPt', 'c2oPt', 'c3oPt', 'c1oPtc1', 'c2oPtc2', 'c3oPtc3', 'fullScale', 'cl3d_abseta', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
             saturation_dict = {'cl3d_c1': [0,30],
                                'cl3d_c2': [0,5],
                                'cl3d_c3': [0,30],
+                               'c1oc3' : [0,43.5],
+                               'c1oc2' : [0,34],
+                               'c2oc3' : [0,2.6],
+                               'c1oPt' : [0,5],
+                               'c2oPt' : [0,0.23],
+                               'c3oPt' : [0,0.8],
+                               'c1oPtc1' : [0,1],
+                               'c2oPtc2' : [0,0.1],
+                               'c3oPtc3' : [0,1.43],
+                               'fullScale' : [0,5.5],
                                'cl3d_abseta': [1.45, 3.2],
                                'cl3d_seetot': [0, 0.17],
                                'cl3d_seemax': [0, 0.6],
@@ -98,9 +120,10 @@ if __name__ == "__main__" :
     
 
     # features for BDT training - ORDERED BY ANY IMPORTANCE METRIC (from highest to lowest)
-    featuresSHAP = ['cl3d_c3', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_seetot', 'cl3d_meanz', 'cl3d_hoe', 'cl3d_c2', 'cl3d_spptot', 'cl3d_abseta', 'cl3d_c1', 'cl3d_srrmax', 'cl3d_showerlength', 'cl3d_szz', 'cl3d_firstlayer', 'cl3d_seemax', 'cl3d_sppmax']
-    featuresXGB  = ['cl3d_c3', 'cl3d_coreshowerlength', 'cl3d_seetot', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_abseta', 'cl3d_c2', 'cl3d_c1', 'cl3d_meanz', 'cl3d_srrmax', 'cl3d_hoe', 'cl3d_showerlength', 'cl3d_spptot', 'cl3d_szz', 'cl3d_firstlayer', 'cl3d_sppmax', 'cl3d_seemax']
-    featuresRNDM = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    featuresSHAP = ['c2oPtc2', 'cl3d_c3', 'c3oPt', 'cl3d_coreshowerlength', 'cl3d_srrmean', 'c3oPtc3', 'cl3d_meanz', 'cl3d_hoe', 'cl3d_srrtot', 'c2oPt', 'cl3d_spptot', 'c1oc3', 'cl3d_sppmax', 'fullScale', 'cl3d_seemax', 'cl3d_seetot', 'cl3d_srrmax', 'c1oPt', 'c2oc3', 'cl3d_szz', 'cl3d_c1', 'cl3d_showerlength', 'cl3d_firstlayer', 'cl3d_abseta', 'c1oPtc1', 'c1oc2', 'cl3d_c2']
+    featuresXGB  = ['cl3d_c3', 'c2oPtc2', 'c3oPtc3', 'c3oPt', 'cl3d_srrmean', 'cl3d_srrtot', 'cl3d_coreshowerlength', 'c2oPt', 'c2oc3', 'c1oc3', 'cl3d_c2', 'fullScale', 'c1oPt', 'cl3d_hoe', 'cl3d_spptot', 'cl3d_meanz', 'cl3d_abseta', 'c1oPtc1', 'cl3d_seetot', 'cl3d_sppmax', 'cl3d_srrmax', 'c1oc2', 'cl3d_showerlength', 'cl3d_seemax', 'cl3d_szz', 'cl3d_c1', 'cl3d_firstlayer']
+    featuresRNDM = ['c2oPtc2', 'cl3d_c3', 'c3oPt', 'cl3d_coreshowerlength', 'cl3d_srrmean', 'c3oPtc3', 'cl3d_meanz', 'cl3d_hoe', 'cl3d_srrtot', 'c2oPt', 'cl3d_spptot', 'c1oc3', 'cl3d_sppmax', 'fullScale', 'cl3d_seemax', 'cl3d_seetot', 'cl3d_srrmax', 'c1oPt', 'c2oc3', 'cl3d_szz', 'cl3d_c1', 'cl3d_showerlength', 'cl3d_firstlayer', 'cl3d_abseta', 'c1oPtc1', 'c1oc2', 'cl3d_c2']
+
 
     # cerate train and label 
     X_train = dfTr[featuresSHAP] ; y_train = dfTr['sgnId']

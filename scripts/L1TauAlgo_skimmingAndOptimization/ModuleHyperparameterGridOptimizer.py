@@ -157,42 +157,6 @@ class HyperparametersGridOptimizer():
         self.val_rmses_stds.append(rmse_std_val)
 
 
-    # apply model to validation dataset using the best parameters got from the grid optimization
-    # def fitValOnTier(self, hyperparams):
-    #     cv_train = xgb.cv(hyperparams, self.train, metrics=['auc', 'rmse'], nfold=5, num_boost_round=self.num_trees, stratified=True)
-    #     cv_val = xgb.cv(hyperparams, self.val, metrics=['auc', 'rmse'], nfold=5, num_boost_round=self.num_trees, stratified=True)
-        
-    #     auc_train = cv_train['train-auc-mean'][self.num_trees-1]
-    #     auc_std_train = cv_train['train-auc-std'][self.num_trees-1]
-    #     auc_test = cv_train['test-auc-mean'][self.num_trees-1]
-    #     auc_std_test = cv_train['test-auc-std'][self.num_trees-1]
-    #     auc_val = (cv_val['test-auc-mean'][self.num_trees-1] + cv_val['train-auc-mean'][self.num_trees-1]) / 2
-    #     auc_std_val = np.sqrt( cv_val['test-auc-std'][self.num_trees-1]**2 + cv_val['train-auc-std'][self.num_trees-1]**2 ) / 2
-
-    #     rmse_train = cv_train['train-rmse-mean'][self.num_trees-1]
-    #     rmse_std_train = cv_train['train-rmse-std'][self.num_trees-1]
-    #     rmse_test = cv_train['test-rmse-mean'][self.num_trees-1]
-    #     rmse_std_test = cv_train['test-rmse-std'][self.num_trees-1]
-    #     rmse_val = (cv_val['test-rmse-mean'][self.num_trees-1] + cv_val['train-rmse-mean'][self.num_trees-1]) / 2
-    #     rmse_std_val = np.sqrt( cv_val['test-rmse-std'][self.num_trees-1]**2 + cv_val['train-rmse-std'][self.num_trees-1]**2 ) / 2
-
-    #     results = {'train-auc-mean'   : auc_train,
-    #                'train-auc-std'    : auc_std_train,
-    #                'test-auc-mean'    : auc_test,
-    #                'test-auc-std'     : auc_std_test,
-    #                'test-auc-mean'    : auc_val,
-    #                'test-auc-std'     : auc_std_val,
-    #                'train-rmse-mean' : rmse_train,
-    #                'train-rmse-std'  : rmse_std_train,
-    #                'test-rmse-mean'  : rmse_test,
-    #                'test-rmse-std'   : rmse_std_test,
-    #                'test-rmse-mean'  : rmse_val,
-    #                'test-rmse-std'   : rmse_std_val
-    #               }
-
-    #     return results
-    
-
     # plot the results as a function of the hyperparameters chosen at each boosting round
     def plotterAucVsParams(self, outdir, metric="val", tag=""):
         optimiz_metric = []
@@ -278,17 +242,17 @@ class HyperparametersGridOptimizer():
             for j in range(len(self.train_rmses)):
                 reportFile.write("Number of boosting rounds = {0}\n\n".format(self.min_num_trees+j))
                 reportFile.write("    >>> train-auc-mean = {0}\n".format(self.train_aucs[j]))
-                reportFile.write("    >>> train-auc-std = {0}\n".format(self.train_aucs[j]))
+                reportFile.write("    >>> train-auc-std = {0}\n".format(self.train_aucs_stds[j]))
                 reportFile.write("    >>> test-auc-mean = {0}\n".format(self.test_aucs[j]))
-                reportFile.write("    >>> test-auc-std = {0}\n".format(self.test_aucs[j]))
-                reportFile.write("    >>> test-auc-mean = {0}\n".format(self.test_aucs[j]))
-                reportFile.write("    >>> test-auc-std = {0}\n".format(self.test_aucs[j]))
+                reportFile.write("    >>> test-auc-std = {0}\n".format(self.test_aucs_stds[j]))
+                reportFile.write("    >>> val-auc-mean = {0}\n".format(self.val_aucs[j]))
+                reportFile.write("    >>> val-auc-std = {0}\n".format(self.val_aucs_stds[j]))
                 reportFile.write("    >>> train-rmse-mean = {0}\n".format(self.train_rmses[j]))
-                reportFile.write("    >>> train-rmse-std = {0}\n".format(self.train_rmses[j]))
+                reportFile.write("    >>> train-rmse-std = {0}\n".format(self.train_rmses_stds[j]))
                 reportFile.write("    >>> test-rmse-mean = {0}\n".format(self.test_rmses[j]))
-                reportFile.write("    >>> test-rmse-std = {0}\n".format(self.test_rmses[j]))
-                reportFile.write("    >>> test-rmse-mean = {0}\n".format(self.test_rmses[j]))
-                reportFile.write("    >>> test-rmse-std = {0}\n".format(self.test_rmses[j]))
+                reportFile.write("    >>> test-rmse-std = {0}\n".format(self.test_rmses_stds[j]))
+                reportFile.write("    >>> val-rmse-mean = {0}\n".format(self.val_rmses[j]))
+                reportFile.write("    >>> val-rmse-std = {0}\n".format(self.val_rmses_stds[j]))
         reportFile.close()
 
 
@@ -301,17 +265,17 @@ class HyperparametersGridOptimizer():
                 reportFile.write("\n")
                 reportFile.write("Number of boosting rounds = {0}\n\n".format(self.num_trees))
                 reportFile.write("    >>> train-auc-mean = {0}\n".format(self.train_aucs[j]))
-                reportFile.write("    >>> train-auc-std = {0}\n".format(self.train_aucs[j]))
+                reportFile.write("    >>> train-auc-std = {0}\n".format(self.train_aucs_stds[j]))
                 reportFile.write("    >>> test-auc-mean = {0}\n".format(self.test_aucs[j]))
-                reportFile.write("    >>> test-auc-std = {0}\n".format(self.test_aucs[j]))
-                reportFile.write("    >>> test-auc-mean = {0}\n".format(self.test_aucs[j]))
-                reportFile.write("    >>> test-auc-std = {0}\n".format(self.test_aucs[j]))
+                reportFile.write("    >>> test-auc-std = {0}\n".format(self.test_aucs_stds[j]))
+                reportFile.write("    >>> val-auc-mean = {0}\n".format(self.val_aucs[j]))
+                reportFile.write("    >>> val-auc-std = {0}\n".format(self.val_aucs_stds[j]))
                 reportFile.write("    >>> train-rmse-mean = {0}\n".format(self.train_rmses[j]))
-                reportFile.write("    >>> train-rmse-std = {0}\n".format(self.train_rmses[j]))
+                reportFile.write("    >>> train-rmse-std = {0}\n".format(self.train_rmses_stds[j]))
                 reportFile.write("    >>> test-rmse-mean = {0}\n".format(self.test_rmses[j]))
-                reportFile.write("    >>> test-rmse-std = {0}\n".format(self.test_rmses[j]))
-                reportFile.write("    >>> test-rmse-mean = {0}\n".format(self.test_rmses[j]))
-                reportFile.write("    >>> test-rmse-std = {0}\n".format(self.test_rmses[j]))
+                reportFile.write("    >>> test-rmse-std = {0}\n".format(self.test_rmses_stds[j]))
+                reportFile.write("    >>> val-rmse-mean = {0}\n".format(self.val_rmses[j]))
+                reportFile.write("    >>> val-rmse-std = {0}\n".format(self.val_rmses_stds[j]))
         reportFile.close()
 
 
