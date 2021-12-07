@@ -1,10 +1,25 @@
 import os
+import sys
 import numpy as np
 import pandas as pd
 import root_pandas
 import argparse
 from sklearn.model_selection import train_test_split
 
+class Logger(object):
+    def __init__(self, file):
+        self.terminal = sys.stdout
+        self.log = open(file, "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        #this flush method is needed for python 3 compatibility.
+        #this handles the flush command by doing nothing.
+        #you might want to specify some extra behavior here.
+        pass
 
 def deltar( df, isTau ):
     if isTau:
@@ -172,6 +187,10 @@ if __name__ == "__main__" :
     outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched'
     os.system('mkdir -p '+outdir)
 
+    # set output to go both to terminal and to file
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched/info.log")
+    print('** INFO: using baseline cut pT>{0}GeV'.format(args.ptcut))
+
     # dictionary of front-end options
     feNames_dict = {
         'threshold'    : 'Threshold',
@@ -307,8 +326,8 @@ if __name__ == "__main__" :
     # TTree to be read
     treename = 'HGCALskimmedTree'
     #TBranches to be stored containing the 3D clusters' info
-    branches_event_cl3d = ['event','cl3d_pt','cl3d_eta','cl3d_phi','cl3d_showerlength','cl3d_coreshowerlength', 'cl3d_firstlayer','cl3d_seetot','cl3d_seemax','cl3d_spptot','cl3d_sppmax','cl3d_szz', 'cl3d_srrtot','cl3d_srrmax','cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
-    branches_cl3d       = ['cl3d_pt','cl3d_eta','cl3d_phi','cl3d_showerlength','cl3d_coreshowerlength', 'cl3d_firstlayer','cl3d_seetot','cl3d_seemax','cl3d_spptot','cl3d_sppmax','cl3d_szz', 'cl3d_srrtot','cl3d_srrmax','cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    branches_event_cl3d = ['event','cl3d_pt','cl3d_eta','cl3d_phi', 'cl3d_energy', 'cl3d_showerlength','cl3d_coreshowerlength', 'cl3d_firstlayer','cl3d_seetot','cl3d_seemax','cl3d_spptot','cl3d_sppmax','cl3d_szz', 'cl3d_srrtot','cl3d_srrmax','cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    branches_cl3d       = ['cl3d_pt','cl3d_eta','cl3d_phi', 'cl3d_energy', 'cl3d_showerlength','cl3d_coreshowerlength', 'cl3d_firstlayer','cl3d_seetot','cl3d_seemax','cl3d_spptot','cl3d_sppmax','cl3d_szz', 'cl3d_srrtot','cl3d_srrmax','cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
     # TBranches to be stored containing the gen taus' info
     branches_event_gentau = ['event', 'gentau_pt', 'gentau_eta', 'gentau_phi', 'gentau_energy', 'gentau_mass', 'gentau_vis_pt', 'gentau_vis_eta', 'gentau_vis_phi', 'gentau_vis_energy', 'gentau_vis_mass', 'gentau_decayMode']
     branches_gentau       = ['gentau_pt', 'gentau_eta', 'gentau_phi', 'gentau_energy', 'gentau_mass', 'gentau_vis_pt', 'gentau_vis_eta', 'gentau_vis_phi', 'gentau_vis_energy', 'gentau_vis_mass', 'gentau_decayMode']
@@ -353,10 +372,10 @@ if __name__ == "__main__" :
             dfHH.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
 
             # here we need to make sure we are not overlapping the 'events' columns
-            dfHH['event'] = 'HH' + dfHH['event'].astype(str)
+            dfHH['event'] = 'hh' + dfHH['event'].astype(str)
             dfHH.set_index('event', inplace=True)
             dfHH.sort_values('event', inplace=True)
-            dfHH_towers['event'] = 'HH' + dfHH_towers['event'].astype(str)
+            dfHH_towers['event'] = 'hh' + dfHH_towers['event'].astype(str)
             dfHH_towers.set_index('event', inplace=True)
             dfHH_towers.sort_values('event', inplace=True)
 
@@ -490,7 +509,7 @@ if __name__ == "__main__" :
             print('** INFO: matching gentaus for ' + inFileVBFH_dict[name])
             dfVBFH = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
             dfVBFH['sgnId'] = dfVBFH.apply(lambda row: prepareCat(row), axis=1)
-            dfVBFH.query('sgnId==1', inplace=True)
+            #dfVBFH.query('sgnId==1', inplace=True)
             dfVBFH['cl3d_abseta'] = np.abs(dfVBFH['cl3d_eta'])
             dfVBFH.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
 
@@ -538,7 +557,7 @@ if __name__ == "__main__" :
             print('** INFO: matching gentaus for ' + inFileZprime_dict[name])
             dfZprime = taumatching(df_cl3d, df_gentau, deta_matching, dphi_matching, dr_matching)
             dfZprime['sgnId'] = dfZprime.apply(lambda row: prepareCat(row), axis=1)
-            dfZprime.query('sgnId==1', inplace=True)
+            #dfZprime.query('sgnId==1', inplace=True)
             dfZprime['cl3d_abseta'] = np.abs(dfZprime['cl3d_eta'])
             dfZprime.query('cl3d_pt>{0}'.format(args.ptcut), inplace=True) # apply baseline pT cut
 
@@ -697,6 +716,11 @@ if __name__ == "__main__" :
             dfMergedTraining.query('(cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))', inplace=True)
             dfMergedValidation.query('(cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))', inplace=True)
 
+            # minimal queries to reject weird lines
+            # the first three 3 requirements actually always select the same clusters
+            dfMergedTraining.query('cl3d_showerlength>0 and cl3d_firstlayer<=50 and cl3d_meanz>250 and cl3d_hoe>=0', inplace=True)
+            dfMergedValidation.query('cl3d_showerlength>0 and cl3d_firstlayer<=50 and cl3d_meanz>250 and cl3d_hoe>=0', inplace=True)
+
             # SAVE
             print('** INFO: saving file ' + outFileTraining_dict[name])
             store_tr = pd.HDFStore(outFileTraining_dict[name], mode='w')
@@ -719,4 +743,5 @@ if __name__ == "__main__" :
         print('\n** INFO: finished cluster matching for the front-end option '+feNames_dict[name])
         print('---------------------------------------------------------------------------------------')
 
-
+# restore normal output
+sys.stdout = sys.__stdout__

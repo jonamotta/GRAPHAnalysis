@@ -16,10 +16,12 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import MinMaxScaler
 import pickle
 import matplotlib.lines as mlines
 import scikitplot as skplt
 import argparse
+import shap
 
 class Logger(object):
     def __init__(self,file):
@@ -42,7 +44,7 @@ def save_obj(obj,dest):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(source):
-    with open(source,'r') as f:
+    with open(source,'rb') as f:
         return pickle.load(f)
 
 #######################################################################
@@ -57,7 +59,9 @@ if __name__ == "__main__" :
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--PUWP', dest='PUWP', help='which working point do you want to use (90, 95, 99)?', default='90')
-    parser.add_argument('--ISOWP', dest='ISOWP', help='which working point do you want to use (10, 05, 01)?', default='05')
+    parser.add_argument('--ISOWP', dest='ISOWP', help='which working point do you want to use (10, 15, 20, 25)?', default='25')
+    parser.add_argument('--hardPUrej', dest='hardPUrej', help='apply hard PU rejection and do not consider PU categorized clusters for Iso variables? (99, 95, 90)', default='NO')
+    parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
@@ -74,14 +78,16 @@ if __name__ == "__main__" :
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_C1fullC2C3_fullPUnoPt_fullISO'.format(args.PUWP)
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/DMsorted_C1fullC2C3_fullPUnoPt_fullISO'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/DMsorting_C1fullC2C3_fullPUnoPt_PUWP{0}_fullISO_ISOWP{1}'.format(args.PUWP,args.ISOWP)
-    model_dict_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_C1fullC2C3_fullPUnoPt_fullISO'
+    tag1 = "Rscld" if args.doRescale else ""
+    tag2 = "{0}hardPUrej".format(args.hardPUrej) if args.hardPUrej != 'NO' else ""
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/isolated_skimPUnoPt{0}_skimISO{0}{1}'.format(tag1, tag2)
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/DMsorted_skimPUnoPt{0}_skimISO{0}{1}'.format(tag1, tag2)
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/DMsorting_skimPUnoPt{0}_PUWP{2}_skimISO{0}{1}_ISOWP{3}'.format(tag1, tag2, args.PUWP, args.ISOWP)
+    model_dict_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_skimPUnoPt{0}_skimISO{0}{1}'.format(tag1, tag2)
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_dict_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_C1fullC2C3_fullPUnoPt_fullISO/performance_PUWP{0}_ISOWP{1}.log".format(args.PUWP,args.ISOWP))
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/DMsorting_skimPUnoPt{0}_skimISO{0}{1}/performance_PUWP{2}_ISOWP{3}.log".format(tag1, tag2, args.PUWP,args.ISOWP))
 
     print('** INFO: using PU rejection BDT WP: '+args.PUWP)
     print('** INFO: using ISO BDT WP: '+args.ISOWP)
@@ -139,17 +145,29 @@ if __name__ == "__main__" :
     cm_dict = {}
     ns_dict = {}
     
-    # features from ISO to be possibli used
+    # features from ISO to be possibly used
     # 'cl3d_NclIso_dR4', 'cl3d_etIso_dR4', 'tower_etSgn_dRsgn1', 'tower_eSgn_dRsgn1', 'tower_etSgn_dRsgn2', 'tower_eSgn_dRsgn2', 'tower_etIso_dRsgn1_dRiso3', 'tower_eIso_dRsgn1_dRiso3', 'tower_etEmIso_dRsgn1_dRiso3', 'tower_etHadIso_dRsgn1_dRiso7', 'tower_etIso_dRsgn2_dRiso4', 'tower_eIso_dRsgn2_dRiso4', 'tower_etEmIso_dRsgn2_dRiso4', 'tower_etHadIso_dRsgn2_dRiso7'
 
     # features used for the sorting step - FULL AVAILABLE
-    features = ['cl3d_pt_c1', 'cl3d_pt_c2', 'cl3d_pt_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    features = ['cl3d_pt_tr', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
 
-    # name : [title, [min, max, step]
-    features_dict = {'cl3d_c1'               : [r'C1 factor value',[0.,2.,10]], 
-                     'cl3d_c2'               : [r'C2 factor value',[0.75,2.,15]], 
-                     'cl3d_c3'               : [r'C3 factor value',[0.75,2.,15]],
-                     'cl3d_pt_c3'            : [r'3D cluster $p_{T}$ after C3',[0.,500.,50]],
+    #  the saturation and shifting values are calculated in the "features_reshaping" JupyScript
+    features2shift = ['cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer',]
+    features2saturate = ['cl3d_abseta', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    saturation_dict = {'cl3d_abseta': [1.45, 3.2],
+                       'cl3d_seetot': [0, 0.17],
+                       'cl3d_seemax': [0, 0.6],
+                       'cl3d_spptot': [0, 0.17],
+                       'cl3d_sppmax': [0, 0.53],
+                       'cl3d_szz': [0, 141.09],
+                       'cl3d_srrtot': [0, 0.02],
+                       'cl3d_srrmax': [0, 0.02],
+                       'cl3d_srrmean': [0, 0.01],
+                       'cl3d_hoe': [0, 63],
+                       'cl3d_meanz': [305, 535]
+                    }
+
+    features_dict = {'cl3d_pt_tr'            : [r'3D cluster $p_{T}$',[0.,500.,50]],
                      'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,10]], 
                      'cl3d_showerlength'     : [r'3D cluster shower length',[0.,35.,15]], 
                      'cl3d_coreshowerlength' : [r'Core shower length ',[0.,35.,15]], 
@@ -164,21 +182,24 @@ if __name__ == "__main__" :
                      'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[0.,0.01,10]], 
                      'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[0.,4.,20]], 
                      'cl3d_meanz'            : [r'3D cluster meanz',[325.,375.,30]], 
-                     #'cl3d_NclIso_dR4'              : [r'Number of clusters inside an isolation cone of dR=0.4',[0.,10.,10]],
-                     #'cl3d_etIso_dR4'               : [r'Clusters $E_{T}$ inside an isolation cone of dR=0.4',[0.,200.,40]],
-                     #'tower_etSgn_dRsgn1'           : [r'$E_{T}$ inside a signal cone of dR=0.1',[0.,200.,40]],
-                     #'tower_eSgn_dRsgn1'            : [r'$E$ inside a signal cone of dR=0.1',[0.,400.,40]],
-                     #'tower_etSgn_dRsgn2'           : [r'$E_{T}$ inside a signal cone of dR=0.2',[0.,200.,40]],
-                     #'tower_eSgn_dRsgn2'            : [r'$E$ inside a signal cone of dR=0.2',[0.,400.,40]],
-                     #'tower_etIso_dRsgn1_dRiso3'    : [r'Towers $E_{T}$ between dR=0.1-0.3 around L1 candidate',[0.,200.,40]],
-                     #'tower_eIso_dRsgn1_dRiso3'     : [r'Towers $E$ between dR=0.1-0.3 around L1 candidate',[0.,400.,40]],
-                     #'tower_etEmIso_dRsgn1_dRiso3'  : [r'Towers $E_{T}^{em}$ between dR=0.1-0.3 around L1 candidate',[0.,150.,30]],
-                     #'tower_etHadIso_dRsgn1_dRiso7' : [r'Towers $E_{T}^{had}$ between dR=0.1-0.7 around L1 candidate',[0.,200.,40]],
-                     #'tower_etIso_dRsgn2_dRiso4'    : [r'Towers $E_{T}$ between dR=0.2-0.4 around L1 candidate',[0.,200.,40]],
-                     #'tower_eIso_dRsgn2_dRiso4'     : [r'Towers $E$ between dR=0.2-0.4 around L1 candidate',[0.,400.,40]],
-                     #'tower_etEmIso_dRsgn2_dRiso4'  : [r'Towers $E_{T}^{em}$ between dR=0.2-0.4 around L1 candidate',[0.,150.,30]],
-                     #'tower_etHadIso_dRsgn2_dRiso7' : [r'Towers $E_{T}^{had}$ between dR=0.2-0.7 around L1 candidate',[0.,200.,40]]
     }
+    if args.doRescale:
+        features_dict = {'cl3d_pt_tr'            : [r'3D cluster $p_{T}$',[-33.,33.,66]],
+                         'cl3d_abseta'           : [r'3D cluster |$\eta$|',[-33.,33.,66]], 
+                         'cl3d_showerlength'     : [r'3D cluster shower length',[-33.,33.,66]], 
+                         'cl3d_coreshowerlength' : [r'Core shower length ',[-33.,33.,66]], 
+                         'cl3d_firstlayer'       : [r'3D cluster first layer',[-33.,33.,66]], 
+                         'cl3d_seetot'           : [r'3D cluster total $\sigma_{ee}$',[-33.,33.,66]],
+                         'cl3d_seemax'           : [r'3D cluster max $\sigma_{ee}$',[-33.,33.,66]],
+                         'cl3d_spptot'           : [r'3D cluster total $\sigma_{\phi\phi}$',[-33.,33.,66]],
+                         'cl3d_sppmax'           : [r'3D cluster max $\sigma_{\phi\phi}$',[-33.,33.,66]],
+                         'cl3d_szz'              : [r'3D cluster $\sigma_{zz}$',[-33.,33.,66]], 
+                         'cl3d_srrtot'           : [r'3D cluster total $\sigma_{rr}$',[-33.,33.,66]],
+                         'cl3d_srrmax'           : [r'3D cluster max $\sigma_{rr}$',[-33.,33.,66]],
+                         'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[-33.,33.,66]], 
+                         'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[-33.,33.,66]], 
+                         'cl3d_meanz'            : [r'3D cluster meanz',[-33.,33.,66]], 
+        }
 
     #*****************************************************************************#
     #************************ LOOP OVER FRONT-END METHODS ************************#
@@ -197,6 +218,33 @@ if __name__ == "__main__" :
         dfValidation_dict[name] = store_val[name]
         store_val.close()
 
+        ######################### DO RESCALING OF THE FEATURES #########################
+        if args.doRescale:
+            print('\n** INFO: rescaling features to bound their values')
+
+            #define a DF with the bound values of the features to use for the MinMaxScaler fit
+            bounds4features = pd.DataFrame(columns=features2saturate)
+
+            # shift features to be shifted
+            for feat in features2shift:
+                dfTraining_dict[name][feat] = dfTraining_dict[name][feat] - 25
+                dfValidation_dict[name][feat] = dfValidation_dict[name][feat] - 25
+
+            # saturate features
+            for feat in features2saturate:
+                dfTraining_dict[name][feat].clip(saturation_dict[feat][0],saturation_dict[feat][1], inplace=True)
+                dfValidation_dict[name][feat].clip(saturation_dict[feat][0],saturation_dict[feat][1], inplace=True)
+                
+                # fill the bounds DF
+                bounds4features[feat] = np.linspace(saturation_dict[feat][0],saturation_dict[feat][1],100)
+
+            scale_range = [-32,32]
+            MMS = MinMaxScaler(scale_range)
+
+            for feat in features2saturate:
+                MMS.fit( np.array(bounds4features[feat]).reshape(-1,1) ) # we fit every feature separately otherwise MMS compleins for dimensionality
+                dfTraining_dict[name][feat] = MMS.transform( np.array(dfTraining_dict[name][feat]).reshape(-1,1) )
+                dfValidation_dict[name][feat] = MMS.transform( np.array(dfValidation_dict[name][feat]).reshape(-1,1) )
 
         ######################### SELECT EVENTS FOR TRAINING #########################  
 
@@ -233,7 +281,7 @@ if __name__ == "__main__" :
         print('\n** INFO: training random forest')
         inputs = dfTr[features]
         target = dfTr['gentau_decayMode']
-        RFC = RandomForestClassifier(n_jobs=10, random_state=0, class_weight='balanced', max_depth=2, n_estimators=1000)
+        RFC = RandomForestClassifier(n_jobs=10, random_state=0, class_weight='balanced', max_depth=2, n_estimators=300)
         model_dict[name] = RFC.fit(inputs,target)
         
         save_obj(model_dict[name], outFile_model_dict[name])
@@ -247,7 +295,7 @@ if __name__ == "__main__" :
         ######################### APPLICATION OF BDT #########################
 
         print('\n** INFO: doing K-fold validation')
-        dfVal['cl3d_predDM'] = cross_val_predict(model_dict[name], dfVal[features], dfVal['gentau_decayMode'], cv=5)
+        dfVal['cl3d_predDM'] = cross_val_predict(model_dict[name], dfVal[features], dfVal['gentau_decayMode'], cv=3)
         probas_val = model_dict[name].predict_proba(dfVal[features])
         dfVal['cl3d_probDM0'] = probas_val[:,0]
         dfVal['cl3d_probDM1'] = probas_val[:,1]

@@ -6,12 +6,15 @@ import xgboost as xgb
 import matplotlib
 import pickle
 from sklearn import metrics
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.lines as mlines
 from scipy.optimize import curve_fit
 from scipy.special import btdtri # beta quantile function
 import argparse
 import sys
+import shap
+
 
 class Logger(object):
     def __init__(self, file):
@@ -86,8 +89,25 @@ def save_obj(obj,dest):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(source):
-    with open(source,'r') as f:
+    with open(source,'rb') as f:
         return pickle.load(f)
+
+def global_shap_importance(shap_values):
+    cohorts = {"": shap_values}
+    cohort_labels = list(cohorts.keys())
+    cohort_exps = list(cohorts.values())
+    for i in range(len(cohort_exps)):
+        if len(cohort_exps[i].shape) == 2:
+            cohort_exps[i] = cohort_exps[i].abs.mean(0)
+    features = cohort_exps[0].data
+    feature_names = cohort_exps[0].feature_names
+    values = np.array([cohort_exps[i].values for i in range(len(cohort_exps))])
+    feature_importance = pd.DataFrame(
+        list(zip(feature_names, sum(values))), columns=['features', 'importance'])
+    feature_importance.sort_values(
+        by=['importance'], ascending=False, inplace=True)
+    return feature_importance
+
 
 #######################################################################
 ######################### SCRIPT BODY #################################
@@ -101,6 +121,7 @@ if __name__ == "__main__" :
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
     parser.add_argument('--doPlots', dest='doPlots', help='do you want to produce the plots?', action='store_true', default=False)
     parser.add_argument('--doEfficiency', dest='doEfficiency', help='do you want calculate the efficiencies?', action='store_true', default=False)
+    parser.add_argument('--doRescale', dest='doRescale', help='do you want rescale the features?', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
@@ -119,14 +140,15 @@ if __name__ == "__main__" :
     }
 
     # create needed folders
-    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1fullC2C3'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_C1fullC2C3_PUc1c2c3'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/PUrejection_C1fullC2C3_PUc1c2c3'
-    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_C1fullC2C3_PUc1c2c3'
+    tag = "Rscld" if args.doRescale else ""
+    indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1skimC2C3'
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/PUrejected_skimPUnoPt{0}'.format(tag)
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/PUrejection_skimPUnoPt{0}'.format(tag)
+    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_skimPUnoPt{0}'.format(tag)
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_C1fullC2C3_PUc1c2c3/performance.log")
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/PUrejection_skimPUnoPt{0}/performance.log".format(tag))
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
@@ -187,26 +209,75 @@ if __name__ == "__main__" :
     dfTraining_dict = {}
     dfValidation_dict = {}
 
-    # features for BDT training - FULL AVAILABLE
-    features = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3']
-    features = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
-    features = ['cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
-
-
+    # target of the training
     output = 'sgnId'
 
+    # # features for BDT training - FULL AVAILABLE
+    # features = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'c1oc3', 'c1oc2', 'c2oc3', 'c1oPt', 'c2oPt', 'c3oPt', 'c1oPtc1', 'c2oPtc2', 'c3oPtc3', 'fullScale', 'cl3d_abseta', 'cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    # # the saturation and shifting values are calculated in the "features_reshaping" JupyScript
+    # features2shift = ['cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer',]
+    # features2saturate = ['cl3d_c1', 'cl3d_c2', 'cl3d_c3', 'c1oc3', 'c1oc2', 'c2oc3', 'c1oPt', 'c2oPt', 'c3oPt', 'c1oPtc1', 'c2oPtc2', 'c3oPtc3', 'fullScale', 'cl3d_abseta', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    # saturation_dict = {'cl3d_c1': [0,30],
+    #                    'cl3d_c2': [0,5],
+    #                    'cl3d_c3': [0,30],
+    #                    'c1oc3' : [0,43.5],
+    #                    'c1oc2' : [0,34],
+    #                    'c2oc3' : [0,2.6],
+    #                    'c1oPt' : [0,5],
+    #                    'c2oPt' : [0,0.23],
+    #                    'c3oPt' : [0,0.8],
+    #                    'c1oPtc1' : [0,1],
+    #                    'c2oPtc2' : [0,0.1],
+    #                    'c3oPtc3' : [0,1.43],
+    #                    'fullScale' : [0,5.5],
+    #                    'cl3d_abseta': [1.45, 3.2],
+    #                    'cl3d_seetot': [0, 0.17],
+    #                    'cl3d_seemax': [0, 0.6],
+    #                    'cl3d_spptot': [0, 0.17],
+    #                    'cl3d_sppmax': [0, 0.53],
+    #                    'cl3d_szz': [0, 141.09],
+    #                    'cl3d_srrtot': [0, 0.02],
+    #                    'cl3d_srrmax': [0, 0.02],
+    #                    'cl3d_srrmean': [0, 0.01],
+    #                    'cl3d_hoe': [0, 63],
+    #                    'cl3d_meanz': [305, 535]
+    #                 }
+    # # BDT hyperparameters
+    # params_dict = {}
+    # params_dict['eval_metric']        = 'logloss'
+    # params_dict['nthread']            = 10   # limit number of threads
+    # params_dict['eta']                = 0.2 # learning rate
+    # params_dict['max_depth']          = 5    # maximum depth of a tree
+    # params_dict['subsample']          = 0.6 # fraction of events to train tree on
+    # params_dict['colsample_bytree']   = 0.7 # fraction of features to train tree on
+    # params_dict['objective']          = 'binary:logistic' # objective function
+    # params_dict['alpha']              = 10
+    # params_dict['lambda']             = 0.3
+    # num_trees = 60  # number of trees to make
+
+    # selected features from FS
+    features = ['cl3d_c3', 'cl3d_coreshowerlength', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    features2shift = ['cl3d_coreshowerlength']
+    features2saturate = ['cl3d_c3', 'cl3d_srrtot', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    saturation_dict = {'cl3d_c3': [0,30],
+                       'cl3d_srrtot': [0, 0.02],
+                       'cl3d_srrmean': [0, 0.01],
+                       'cl3d_hoe': [0, 63],
+                       'cl3d_meanz': [305, 535]
+                    }
+    # BDT hyperparameters
     params_dict = {}
+    params_dict['objective']          = 'binary:logistic'
     params_dict['eval_metric']        = 'logloss'
-    params_dict['nthread']            = 10   # limit number of threads
-    params_dict['eta']                = 0.2 # learning rate
-    params_dict['max_depth']          = 5    # maximum depth of a tree
-    params_dict['subsample']          = 0.6 # fraction of events to train tree on
-    params_dict['colsample_bytree']   = 0.7 # fraction of features to train tree on
-    params_dict['objective']          = 'binary:logistic' # objective function
-    params_dict['alpha']              = 10
-    params_dict['lambda']             = 0.3
-    
-    num_trees = 60  # number of trees to make
+    params_dict['nthread']            = 10
+    params_dict['alpha']              = 9
+    params_dict['lambda']             = 5
+    params_dict['max_depth']          = 4 # from HPO
+    params_dict['eta']                = 0.35 # from HPO
+    params_dict['subsample']          = 0.22 # from HPO
+    params_dict['colsample_bytree']   = 0.7 # from HPO
+    num_trees = 24 # from HPO
+
 
     # dictionaries for BDT training
     model_dict= {}
@@ -258,6 +329,57 @@ if __name__ == "__main__" :
         dfValidation_dict[name] = store_val[name]
         store_val.close()
 
+        ######################### CALCULATE THE NEW FEATURES #########################
+        # dfTraining_dict[name]['c1oc3'] = dfTraining_dict[name]['cl3d_c1'] / dfTraining_dict[name]['cl3d_c3']
+        # dfTraining_dict[name]['c1oc2'] = dfTraining_dict[name]['cl3d_c1'] / dfTraining_dict[name]['cl3d_c2']
+        # dfTraining_dict[name]['c2oc3'] = dfTraining_dict[name]['cl3d_c2'] / dfTraining_dict[name]['cl3d_c3']
+        # dfTraining_dict[name]['c1oPt'] = dfTraining_dict[name]['cl3d_c1'] / dfTraining_dict[name]['cl3d_pt']
+        # dfTraining_dict[name]['c2oPt'] = dfTraining_dict[name]['cl3d_c2'] / dfTraining_dict[name]['cl3d_pt']
+        # dfTraining_dict[name]['c3oPt'] = dfTraining_dict[name]['cl3d_c3'] / dfTraining_dict[name]['cl3d_pt']
+        # dfTraining_dict[name]['c1oPtc1'] = dfTraining_dict[name]['cl3d_c1'] / dfTraining_dict[name]['cl3d_pt_c1']
+        # dfTraining_dict[name]['c2oPtc2'] = dfTraining_dict[name]['cl3d_c2'] / dfTraining_dict[name]['cl3d_pt_c2']
+        # dfTraining_dict[name]['c3oPtc3'] = dfTraining_dict[name]['cl3d_c3'] / dfTraining_dict[name]['cl3d_pt_c3']
+        # dfTraining_dict[name]['fullScale'] = dfTraining_dict[name]['cl3d_c2'] / dfTraining_dict[name]['cl3d_c3'] + dfTraining_dict[name]['cl3d_c1'] / dfTraining_dict[name]['cl3d_pt']
+
+        # dfValidation_dict[name]['c1oc3'] = dfValidation_dict[name]['cl3d_c1'] / dfValidation_dict[name]['cl3d_c3']
+        # dfValidation_dict[name]['c1oc2'] = dfValidation_dict[name]['cl3d_c1'] / dfValidation_dict[name]['cl3d_c2']
+        # dfValidation_dict[name]['c2oc3'] = dfValidation_dict[name]['cl3d_c2'] / dfValidation_dict[name]['cl3d_c3']
+        # dfValidation_dict[name]['c1oPt'] = dfValidation_dict[name]['cl3d_c1'] / dfValidation_dict[name]['cl3d_pt']
+        # dfValidation_dict[name]['c2oPt'] = dfValidation_dict[name]['cl3d_c2'] / dfValidation_dict[name]['cl3d_pt']
+        # dfValidation_dict[name]['c3oPt'] = dfValidation_dict[name]['cl3d_c3'] / dfValidation_dict[name]['cl3d_pt']
+        # dfValidation_dict[name]['c1oPtc1'] = dfValidation_dict[name]['cl3d_c1'] / dfValidation_dict[name]['cl3d_pt_c1']
+        # dfValidation_dict[name]['c2oPtc2'] = dfValidation_dict[name]['cl3d_c2'] / dfValidation_dict[name]['cl3d_pt_c2']
+        # dfValidation_dict[name]['c3oPtc3'] = dfValidation_dict[name]['cl3d_c3'] / dfValidation_dict[name]['cl3d_pt_c3']
+        # dfValidation_dict[name]['fullScale'] = dfValidation_dict[name]['cl3d_c2'] / dfValidation_dict[name]['cl3d_c3'] + dfValidation_dict[name]['cl3d_c1'] / dfValidation_dict[name]['cl3d_pt']
+
+        ######################### DO RESCALING OF THE FEATURES #########################
+        if args.doRescale:
+            print('\n** INFO: rescaling features to bound their values')
+
+            #define a DF with the bound values of the features to use for the MinMaxScaler fit
+            bounds4features = pd.DataFrame(columns=features2saturate)
+
+            # shift features to be shifted
+            for feat in features2shift:
+                dfTraining_dict[name][feat] = dfTraining_dict[name][feat] - 25
+                dfValidation_dict[name][feat] = dfValidation_dict[name][feat] - 25
+
+            # saturate features
+            for feat in features2saturate:
+                dfTraining_dict[name][feat].clip(saturation_dict[feat][0],saturation_dict[feat][1], inplace=True)
+                dfValidation_dict[name][feat].clip(saturation_dict[feat][0],saturation_dict[feat][1], inplace=True)
+                
+                # fill the bounds DF
+                bounds4features[feat] = np.linspace(saturation_dict[feat][0],saturation_dict[feat][1],100)
+
+            scale_range = [-32,32]
+            MMS = MinMaxScaler(scale_range)
+
+            for feat in features2saturate:
+                MMS.fit( np.array(bounds4features[feat]).reshape(-1,1) ) # we fit every feature separately otherwise MMS compleins for dimensionality
+                dfTraining_dict[name][feat] = MMS.transform( np.array(dfTraining_dict[name][feat]).reshape(-1,1) )
+                dfValidation_dict[name][feat] = MMS.transform( np.array(dfValidation_dict[name][feat]).reshape(-1,1) )
+
 
         ######################### SELECT EVENTS FOR TRAINING #########################
 
@@ -267,9 +389,9 @@ if __name__ == "__main__" :
         dfTr = dfTraining_dict[name].query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
         dfVal = dfValidation_dict[name].query('sgnId==1 or cl3d_isbestmatch==False').copy(deep=True)
 
-
         ######################### TRAINING OF BDT #########################
 
+        print('\n** INFO: training BDT')
         model_dict[name], fpr_train_dict[name], tpr_train_dict[name], threshold_train_dict[name], fpr_test_dict[name], tpr_test_dict[name], threshold_test_dict[name], testAuroc_dict[name], trainAuroc_dict[name] = train_xgb(dfTr, features, output, params_dict, num_trees)
 
         print('\n** INFO: training and test AUROC:')
@@ -369,12 +491,12 @@ if __name__ == "__main__" :
 
         del TOT, TOT90, TOT95, TOT99
 
-        TOT = pd.concat([dfTraining_dict[name],dfValidation_dict[name]],sort=False).query('sgnId==1 and cl3d_pt>=30')
+        TOT = pd.concat([dfTraining_dict[name],dfValidation_dict[name]],sort=False).query('sgnId==1 and cl3d_pt_c3>=30')
         TOT99 = TOT.query('cl3d_pubdt_passWP99==True').copy(deep=True)
         TOT95 = TOT.query('cl3d_pubdt_passWP95==True').copy(deep=True)
         TOT90 = TOT.query('cl3d_pubdt_passWP90==True').copy(deep=True)
 
-        print('\nOVERALL SGN EFFICIENCIES FOR cl3d_pt>30GeV:')
+        print('\nOVERALL SGN EFFICIENCIES FOR cl3d_pt_c3>30GeV:')
         print('     at 0.99 sgn efficiency: {0}%'.format(round(float(TOT99.shape[0])/float(TOT.shape[0])*100,2)))
         print('     at 0.95 sgn efficiency: {0}%'.format(round(float(TOT95.shape[0])/float(TOT.shape[0])*100,2)))
         print('     at 0.90 sgn efficiency: {0}%'.format(round(float(TOT90.shape[0])/float(TOT.shape[0])*100,2)))
@@ -392,16 +514,6 @@ if __name__ == "__main__" :
         store_val.close()
 
 
-        ######################### PRINT SOME INFOS #########################
-
-        #print np.unique(dfNu_dict[name].reset_index()['event']).shape[0]
-        #sel = dfNu_dict[name]['cl3d_pt_c3'] > 20
-        #dfNu_dict[name] = dfNu_dict[name][sel]
-        #print np.unique(dfNu_dict[name].reset_index()['event']).shape[0]
-        #sel = dfNu_dict[name]['cl3d_pubdt_passWP99'] == True
-        #dfNu_dict[name] = dfNu_dict[name][sel]
-        #print np.unique(dfNu_dict[name].reset_index()['event']).shape[0]
-
         print('\n** INFO: finished PU rejection for the front-end option '+feNames_dict[name])
         print('---------------------------------------------------------------------------------------')
 
@@ -410,10 +522,9 @@ if args.doPlots:
     print('---------------------------------------------------------------------------------------')
     print('** INFO: starting plotting')
 
-    features_dict = {'cl3d_c1'               : [r'C1 factor value',[0.,2.,10]], 
-                     'cl3d_c2'               : [r'C2 factor value',[0.75,2.,15]], 
-                     'cl3d_c3'               : [r'C3 factor value',[0.75,2.,15]],
-                     'cl3d_pt_c3'            : [r'3D cluster $p_{T}$ after C3',[0.,500.,50]],
+    features_dict = {'cl3d_c1'               : [r'3D cluster C1',[0,30,30]],
+                     'cl3d_c2'               : [r'3D cluster C2',[0,4,10]],
+                     'cl3d_c3'               : [r'3D cluster C3',[0,10,20]],
                      'cl3d_abseta'           : [r'3D cluster |$\eta$|',[1.5,3.,10]], 
                      'cl3d_showerlength'     : [r'3D cluster shower length',[0.,35.,15]], 
                      'cl3d_coreshowerlength' : [r'Core shower length ',[0.,35.,15]], 
@@ -428,8 +539,36 @@ if args.doPlots:
                      'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[0.,0.01,10]], 
                      'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[0.,4.,20]], 
                      'cl3d_meanz'            : [r'3D cluster meanz',[325.,375.,30]], 
-                     
     }
+    if args.doRescale:
+        features_dict = {'cl3d_c1'               : [r'3D cluster C1',[-33.,33.,66]],
+                         'cl3d_c2'               : [r'3D cluster C2',[-33.,33.,66]],
+                         'cl3d_c3'               : [r'3D cluster C3',[-33.,33.,66]],
+                         'c1oc3'                 : [r'3D cluster c1oc3',[-33.,33.,66]],
+                         'c1oc2'                 : [r'3D cluster c1oc2',[-33.,33.,66]],
+                         'c2oc3'                 : [r'3D cluster c2oc3',[-33.,33.,66]],
+                         'c1oPt'                 : [r'3D cluster c1oPt',[-33.,33.,66]],
+                         'c2oPt'                 : [r'3D cluster c2oPt',[-33.,33.,66]],
+                         'c3oPt'                 : [r'3D cluster c3oPt',[-33.,33.,66]],
+                         'c1oPtc1'               : [r'3D cluster c1oPtc1',[-33.,33.,66]],
+                         'c2oPtc2'               : [r'3D cluster c2oPtc2',[-33.,33.,66]],
+                         'c3oPtc3'               : [r'3D cluster c3oPtc3',[-33.,33.,66]],
+                         'fullScale'             : [r'3D cluster fullScale',[-33.,33.,66]],
+                         'cl3d_abseta'           : [r'3D cluster |$\eta$|',[-33.,33.,66]], 
+                         'cl3d_showerlength'     : [r'3D cluster shower length',[-33.,33.,66]], 
+                         'cl3d_coreshowerlength' : [r'Core shower length ',[-33.,33.,66]], 
+                         'cl3d_firstlayer'       : [r'3D cluster first layer',[-33.,33.,66]], 
+                         'cl3d_seetot'           : [r'3D cluster total $\sigma_{ee}$',[-33.,33.,66]],
+                         'cl3d_seemax'           : [r'3D cluster max $\sigma_{ee}$',[-33.,33.,66]],
+                         'cl3d_spptot'           : [r'3D cluster total $\sigma_{\phi\phi}$',[-33.,33.,66]],
+                         'cl3d_sppmax'           : [r'3D cluster max $\sigma_{\phi\phi}$',[-33.,33.,66]],
+                         'cl3d_szz'              : [r'3D cluster $\sigma_{zz}$',[-33.,33.,66]], 
+                         'cl3d_srrtot'           : [r'3D cluster total $\sigma_{rr}$',[-33.,33.,66]],
+                         'cl3d_srrmax'           : [r'3D cluster max $\sigma_{rr}$',[-33.,33.,66]],
+                         'cl3d_srrmean'          : [r'3D cluster mean $\sigma_{rr}$',[-33.,33.,66]], 
+                         'cl3d_hoe'              : [r'Energy in CE-H / Energy in CE-E',[-33.,33.,66]], 
+                         'cl3d_meanz'            : [r'3D cluster meanz',[-33.,33.,66]], 
+        }
 
     for name in feNames_dict:
         if not name in args.FE: continue # skip the front-end options that we do not want to do
@@ -442,7 +581,7 @@ if args.doPlots:
 
         os.system('mkdir -p '+plotdir+'/features/')
 
-        for var in features_dict:
+        for var in features:
             plt.figure(figsize=(8,8))
             plt.hist(dfNu[var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='PU events',      color='red',    histtype='step', lw=2, density=True)
             plt.hist(dfTau[var], bins=np.arange(features_dict[var][1][0],features_dict[var][1][1],(features_dict[var][1][1]-features_dict[var][1][0])/features_dict[var][1][2]), label='Tau signal',   color='limegreen',    histtype='step', lw=2, density=True)
@@ -492,6 +631,24 @@ if args.doPlots:
         plt.savefig(plotdir+'/PUbdt_importances_'+name+'.pdf')
         plt.close()
 
+
+        df = pd.concat([dfTr.query('sgnId==1').sample(1500), dfTr.query('cl3d_isbestmatch==False').sample(1500)], sort=False)[features]
+        explainer = shap.Explainer(model_dict[name])
+        shap_values = explainer(df)
+
+        plt.figure(figsize=(16,8))
+        shap.plots.beeswarm(shap_values, max_display=99, show=False)
+        plt.subplots_adjust(left=0.35, right=0.85, top=0.9, bottom=0.1)
+        plt.savefig(plotdir+'/PUbdt_SHAPimportance_'+name+'.pdf')
+        plt.close()
+
+        most_importants = list(global_shap_importance(shap_values)['features'])[:3]
+        for feat in most_importants:
+            plt.figure(figsize=(8,8))
+            shap.plots.scatter(shap_values[:,feat], color=shap_values, show=False)
+            plt.savefig(plotdir+'/PUbdt_SHAPdependence_'+feat+'_'+name+'.pdf')
+            plt.close()
+        
 
         ######################### PLOT BDT SCORE #########################
 

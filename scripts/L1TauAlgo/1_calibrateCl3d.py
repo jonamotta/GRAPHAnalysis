@@ -45,7 +45,7 @@ def save_obj(obj,dest):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(source):
-    with open(source,'r') as f:
+    with open(source,'rb') as f:
         pickle.load(f)
 
 #######################################################################
@@ -58,7 +58,7 @@ if __name__ == "__main__" :
     parser = argparse.ArgumentParser(description='Command line parser of plotting options')
     parser.add_argument('--doPlots', dest='doPlots', help='do plots?',  action='store_true', default=False)
     parser.add_argument('--FE', dest='FE', help='which front-end option are we using?', default=None)
-    parser.add_argument('--ptcut', dest='ptcut', help='baseline 3D cluster pT cut to use', default='0')
+    parser.add_argument('--doONNX', dest='doONNX', help='run ONNX conversione', action='store_true', default=False)
     # store parsed options
     args = parser.parse_args()
 
@@ -68,10 +68,6 @@ if __name__ == "__main__" :
         print('** EXITING')
         exit()
 
-    if args.ptcut == '0':
-        print('** INFO: no baseline pT cut specified to be used for training and validation')
-        print('** INFO: using default cut pT>4GeV')
-        args.ptcut = '4'
 
     #################### INITIALIZATION OF ALL USEFUL VARIABLES AND DICTIONARIES ####################
 
@@ -83,15 +79,13 @@ if __name__ == "__main__" :
 
     # create needed folders
     indir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/matched'
-    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1fullC2C3'
-    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/calibration_C1fullC2C3'
-    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/calibration_C1fullC2C3'
+    outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/hdf5dataframes/calibrated_C1skimC2C3'
+    plotdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/plots/calibration_C1skimC2C3'
+    model_outdir = '/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/calibration_C1skimC2C3'
     os.system('mkdir -p '+indir+'; mkdir -p '+outdir+'; mkdir -p '+plotdir+'; mkdir -p '+model_outdir)
 
     # set output to go both to terminal and to file
-    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/calibration_C1fullC2C3/performance.log")
-
-    print('** INFO: using baseline pT cut at {0}GeV\n'.format(args.ptcut))
+    sys.stdout = Logger("/home/llr/cms/motta/HGCAL/CMSSW_11_1_0/src/GRAPHAnalysis/L1BDT/pklModels/calibration_C1skimC2C3/performance.log")
 
     # define the input and output dictionaries for the handling of different datasets
     inFileTraining_dict = {
@@ -170,7 +164,14 @@ if __name__ == "__main__" :
     etamin = 1.6
 
     # features used for the C2 calibration step - FULL AVAILABLE
-    features = ['cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    # features = ['cl3d_showerlength', 'cl3d_coreshowerlength', 'cl3d_firstlayer', 'cl3d_seetot', 'cl3d_seemax', 'cl3d_spptot', 'cl3d_sppmax', 'cl3d_szz', 'cl3d_srrtot', 'cl3d_srrmax', 'cl3d_srrmean', 'cl3d_hoe', 'cl3d_meanz']
+    # boostRounds = 1000
+    # max_depth = 2
+    
+    # features used for the C2 calibration step - OPTIMIZED
+    features = ['cl3d_abseta', 'cl3d_coreshowerlength', 'cl3d_meanz', 'cl3d_showerlength', 'cl3d_spptot', 'cl3d_srrmean']
+    boostRounds = 60
+    max_depth = 5
 
     # features used for the C3 calibration step
     vars = ['gentau_vis_pt', 'gentau_vis_bin_pt', 'cl3d_pt_c2', 'cl3d_response_c2']
@@ -213,17 +214,12 @@ if __name__ == "__main__" :
 
         ######################### SELECT EVENTS FOR TRAINING AND VALIDATION #########################
 
-        # here we apply minimal requirements so that we are working in a fiducial region slightly smaller than the full HGCAL acceptance
-        # we apply the OR between tau, jet, and cluster requirements
-        dfTraining_dict[name].query('(cl3d_pt>{0} and cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))'.format(args.ptcut), inplace=True)
-        dfValidation_dict[name].query('(cl3d_pt>{0} and cl3d_abseta>1.6 and cl3d_abseta<2.9) or ((gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9))) or (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9))))'.format(args.ptcut), inplace=True)
+        # for the actual training and validation we enforce the AND between tau and cluster requirements (in the matching only an OR is applied)
+        dfTr = dfTraining_dict[name].query('gentau_decayMode>=0 and cl3d_isbestmatch==True and (gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9)))').copy(deep=True)
+        dfVal = dfValidation_dict[name].query('gentau_decayMode>=0 and cl3d_isbestmatch==True and (gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9)))').copy(deep=True)
 
         dfQCDTr = dfTraining_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True and (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9)))').copy(deep=True)
         dfQCDVal = dfValidation_dict[name].query('gentau_decayMode==-2 and cl3d_isbestmatch==True and (genjet_pt>20 and ((genjet_eta>1.6 and genjet_eta<2.9) or (genjet_eta<-1.6 and genjet_eta>-2.9)))').copy(deep=True)
-
-        # for the actual training and validation we enforce the AND between tau and cluster requirements
-        dfTr = dfTraining_dict[name].query('gentau_decayMode>=0 and cl3d_isbestmatch==True and (gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9)))').copy(deep=True)
-        dfVal = dfValidation_dict[name].query('gentau_decayMode>=0 and cl3d_isbestmatch==True and (gentau_vis_pt>20 and ((gentau_vis_eta>1.6 and gentau_vis_eta<2.9) or (gentau_vis_eta<-1.6 and gentau_vis_eta>-2.9)))').copy(deep=True)
 
         # calculate responses
         dfTr['cl3d_response'] = dfTr['cl3d_pt']/dfTr['gentau_vis_pt']
@@ -251,7 +247,7 @@ if __name__ == "__main__" :
 
         input_c2 = dfTr[features]
         target_c2 = dfTr.gentau_vis_pt / dfTr.cl3d_pt_c1
-        C2model_dict[name] = GradientBoostingRegressor(n_estimators=1000, learning_rate=0.1, max_depth=2, random_state=0, loss='huber').fit(input_c2, target_c2)
+        C2model_dict[name] = GradientBoostingRegressor(n_estimators=boostRounds, learning_rate=0.1, max_depth=max_depth, random_state=0, loss='huber').fit(input_c2, target_c2)
 
         save_obj(C2model_dict[name], outFile_modelC2_dict[name])
 
@@ -269,6 +265,17 @@ if __name__ == "__main__" :
         plt.yticks(pos, np.array(features)[sorted_idx])
         plt.title('Feature Importance (MDI)')
         plt.savefig(plotdir+'/'+name+'_featureImportance_modelC2.pdf')
+
+        if args.doONNX:
+            from skl2onnx import convert_sklearn
+            from skl2onnx.common.data_types import FloatTensorType
+
+            initial_type = [('float_input', FloatTensorType([1, 6]))]
+            onnx_model = convert_sklearn(C2model_dict[name], initial_types=initial_type)
+            with open(model_outdir+"/C2model_nonRscld.onnx", "wb") as f:
+                f.write(onnx_model.SerializeToString())
+            with open("/home/llr/cms/motta/HGCAL/CMSSW_11_1_7/src/L1Trigger/L1CaloTrigger/xmls_tmp/C2model_nonRscld.onnx", "wb") as f:
+                f.write(onnx_model.SerializeToString())
 
 
         ######################### C3 CALIBRATION TRAINING (E dependent calibration) #########################
@@ -493,7 +500,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'a. u.')
-            plt.title('Training dataset calibration response'.format(args.ptcut))
+            plt.title('Training dataset calibration response')
             plt.ylim(0,1750)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/calibResponse_training_'+name+'_PU200.pdf')
@@ -507,7 +514,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$|\eta^{gen,\tau}|$')
-            plt.title('Validation dataset calibration response'.format(args.ptcut))
+            plt.title('Validation dataset calibration response')
             plt.xlim(0, 2)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/calibResponse_training_2Deta_'+name+'_PU200.pdf')
@@ -520,7 +527,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$p_{T}^{gen,\tau}$')
-            plt.title('Validation dataset calibration response'.format(args.ptcut))
+            plt.title('Validation dataset calibration response')
             plt.xlim(0, 2)
             plt.ylim(0, 200)
             plt.gcf().subplots_adjust(bottom=0.12)
@@ -537,7 +544,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'a. u.')
-            plt.title('Validation dataset calibration response'.format(args.ptcut))
+            plt.title('Validation dataset calibration response')
             plt.ylim(0, 800)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/calibResponse_validation_'+name+'_PU200.pdf')
@@ -551,7 +558,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$|\eta^{gen,\tau}|$')
-            plt.title('Validation dataset calibration response'.format(args.ptcut))
+            plt.title('Validation dataset calibration response')
             plt.xlim(0, 2)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/calibResponse_validation_2Deta_'+name+'_PU200.pdf')
@@ -564,7 +571,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$p_{T}^{gen,\tau}$')
-            plt.title('Validation dataset calibration response'.format(args.ptcut))
+            plt.title('Validation dataset calibration response')
             plt.xlim(0, 2)
             plt.ylim(0, 200)
             plt.gcf().subplots_adjust(bottom=0.12)
@@ -579,7 +586,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$|\eta^{gen,\tau}|$')
-            plt.title('Validation dataset C1 calibration response'.format(args.ptcut))
+            plt.title('Validation dataset C1 calibration response')
             plt.xlim(0, 2)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/calibResponseC1_validation_2Deta_'+name+'_PU200.pdf')
@@ -592,7 +599,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$p_{T}^{gen,\tau}$')
-            plt.title('Validation dataset C1 calibration response'.format(args.ptcut))
+            plt.title('Validation dataset C1 calibration response')
             plt.xlim(0, 2)
             plt.ylim(0, 200)
             plt.gcf().subplots_adjust(bottom=0.12)
@@ -607,7 +614,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$|\eta^{gen,\tau}|$')
-            plt.title('Validation dataset C2 calibration response'.format(args.ptcut))
+            plt.title('Validation dataset C2 calibration response')
             plt.xlim(0, 2)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/calibResponseC2_validation_2Deta_'+name+'_PU200.pdf')
@@ -620,7 +627,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'$p_{T}^{gen,\tau}$')
-            plt.title('Validation dataset C2 calibration response'.format(args.ptcut))
+            plt.title('Validation dataset C2 calibration response')
             plt.xlim(0, 2)
             plt.ylim(0, 200)
             plt.gcf().subplots_adjust(bottom=0.12)
@@ -637,7 +644,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'a. u.')
-            plt.title('QCD calibration response'.format(args.ptcut))
+            plt.title('QCD calibration response')
             plt.ylim(0, 1250)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/calibResponse_qcd_'+name+'_PU200.pdf')
@@ -653,7 +660,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'a. u.')
-            plt.title('Validation dataset raw response'.format(args.ptcut))
+            plt.title('Validation dataset raw response')
             plt.ylim(0, 450)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/DM_c0Response_validation_'+name+'_PU200.pdf')
@@ -668,7 +675,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'a. u.')
-            plt.title('Validation  dataset C1 response'.format(args.ptcut))
+            plt.title('Validation  dataset C1 response')
             plt.ylim(0, 450)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/DM_c1Response_validation_'+name+'_PU200.pdf')
@@ -683,7 +690,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'a. u.')
-            plt.title('Validation dataset C2 response'.format(args.ptcut))
+            plt.title('Validation dataset C2 response')
             plt.ylim(0, 450)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/DM_c2Response_validation_'+name+'_PU200.pdf')
@@ -698,7 +705,7 @@ if __name__ == "__main__" :
             plt.grid(linestyle=':')
             plt.xlabel(r'$E_{T}^{L1,\tau}\ /\ p_{T}^{gen,\tau}$')
             plt.ylabel(r'a. u.')
-            plt.title('Validation dataset C3 response'.format(args.ptcut))
+            plt.title('Validation dataset C3 response')
             plt.ylim(0, 450)
             plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(plotdir+'/DM_c3Response_validation_'+name+'_PU200.pdf')
